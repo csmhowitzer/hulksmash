@@ -15,7 +15,8 @@ return {
             --   -- When set to false, csharp.nvim won't launch omnisharp automatically.
             enable = true,
             -- When set, csharp.nvim won't install omnisharp automatically. Instead, the omnisharp instance in the cmd_path will be used.
-            cmd_path = nil,
+            -- cmd_path = nil,
+            cmd_path = "/Users/wwmac/.local/share/nvim/mason/packages/omnisharp/omnisharp",
             -- The default timeout when communicating with omnisharp
             default_timeout = 1000,
             -- Settings that'll be passed to the omnisharp server
