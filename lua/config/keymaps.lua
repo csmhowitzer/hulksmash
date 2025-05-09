@@ -2,16 +2,36 @@
 -- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
 -- Add any additional keymaps here
 
+-- CONFIG: Deleted default keymaps go first
+vim.keymap.del("n", "<leader>l", { desc = "Lazy" })
+vim.keymap.del("n", "<leader>`", { desc = "Switch to other buffer" })
+vim.keymap.del("n", "<C-s>", { desc = "Save File" })
+vim.keymap.del("n", "<leader>.", { desc = "Toggle Scratch Buffer" })
+vim.keymap.del("n", "<leader>qq", { desc = "Quit All" })
+vim.keymap.del("n", "<leader>qs", { desc = "Restore Session" })
+vim.keymap.del("n", "<leader>qS", { desc = "Select Session" })
+vim.keymap.del("n", "<leader>ql", { desc = "Restore Last Session" })
+vim.keymap.del("n", "<leader>qd", { desc = "Don't Save Current Session" })
+
 -- Set highlight on search, but clear on pressing <Esc> in normal mode
 vim.opt.hlsearch = false
 vim.opt.incsearch = true
 vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
--- Diagnostic keymaps
-vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, { desc = "Go to previous [D]iagnostic message" })
-vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Go to next [D]iagnostic message" })
--- vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Show diagnostic [E]rror messages' })
--- vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+-- quickfix list
+vim.keymap.set("n", "<leader>q", function()
+  local success, err = pcall(vim.fn.getqflist({ winid = 0 }).winid ~= 0 and vim.cmd.cclose or vim.cmd.copen)
+  if not success and err then
+    vim.notify(err, vim.log.levels.ERROR)
+  end
+end, { desc = "Quickfix List" })
+-- location list (traditional quickfix locations)
+vim.keymap.set("n", "<leader>l", function()
+  local success, err = pcall(vim.fn.getloclist(0, { winid = 0 }).winid ~= 0 and vim.cmd.lclose or vim.cmd.lopen)
+  if not success and err then
+    vim.notify(err, vim.log.levels.ERROR)
+  end
+end, { desc = "Location List" })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -50,10 +70,11 @@ vim.keymap.set(
   [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]],
   { desc = "[S]earch for cursor word" }
 )
---vim.keymap.set('n', '<leader>x', '<cmd>!chmod +x %<CR>', { silent = true })
 
 vim.keymap.set("n", "<leader><leader>x", "<cmd>source %<CR>", { desc = "[S]ource file" })
--- vim.keymap.set('n', '<leader>x', '.lua<CR>', { desc = 'Run Lua Command' })
--- vim.keymap.set('v', '<leader>x', ':lua<CR>', { desc = 'Run Lua Command' })
--- :bN is the next buffer command
---vim.keymap.set('n', '<leader>hb', '<cmd>bp<CR>', { desc = '[P]revious [B]uffer' })
+
+-- -- Move to window using the <ctrl> hjkl keys
+vim.keymap.set("n", "<S-h>", "<C-w>h", { desc = "Go to Left Window" })
+vim.keymap.set("n", "<S-j>", "<C-w>j", { desc = "Go to Lower Window" })
+vim.keymap.set("n", "<S-k>", "<C-w>k", { desc = "Go to Upper Window" })
+vim.keymap.set("n", "<S-l>", "<C-w>l", { desc = "Go to Right Window" })
