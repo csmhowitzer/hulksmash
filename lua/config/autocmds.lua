@@ -7,6 +7,8 @@
 -- Or remove existing autocmds by their group name (which is prefixed with `lazyvim_` for the defaults)
 -- e.g. vim.api.nvim_del_augroup_by_name("lazyvim_wrap_spell")
 
+local omnisharp = require("user.omnisharp_ext_util")
+
 vim.api.nvim_create_autocmd("LspAttach", {
   group = vim.api.nvim_create_augroup("kickstart-lsp-attach", { clear = true }),
   callback = function(event)
@@ -100,5 +102,12 @@ vim.api.nvim_create_autocmd("LspAttach", {
     --     vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = event.buf }))
     --   end, "[T]oggle Inlay [H]ints")
     -- end
+
+    if omnisharp.check_if_omnisharp_is_active() then
+      map("gd", omnisharp.lsp_definitions, "C# [G]oto [D]efinition")
+      map("gr", omnisharp.lsp_references, "C# [G]oto [R]eferences")
+      map("gI", omnisharp.lsp_implementations, "C# [G]oto [I]mplementation")
+      map("gy", omnisharp.lsp_type_definitions, "C# [G]oto T[Y]pe definition")
+    end
   end,
 })
