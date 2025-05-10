@@ -195,9 +195,9 @@ vim.api.nvim_create_autocmd({ "BufEnter", "FileType" }, {
   }),
   pattern = { "*.cs", "*.csproj", "*.sln" },
   callback = function()
-    vim.keymap.set("n", "<leader>gd", function()
-      require("csharp").go_to_definition()
-    end, { desc = "[G]oto [D]efinition (Roslyn)" })
+    -- vim.keymap.set("n", "<leader>gd", function()
+    --   require("csharp").go_to_definition()
+    -- end, { desc = "[G]oto [D]efinition (Roslyn)" })
     vim.keymap.set("n", "<leader>dbg", function()
       require("csharp").debug_project()
     end, { desc = "[D]e[b]u[g] project" })
@@ -221,6 +221,3 @@ vim.api.nvim_create_autocmd({ "BufEnter", "FileType" }, {
 --    we need the namespace
 --
 -- Same for interfaces
-
--- general keymaps
-vim.keymap.set("n", "<leader>ut", vim.cmd.UndotreeToggle, { desc = "[U]ndotree [T]oggle" })
