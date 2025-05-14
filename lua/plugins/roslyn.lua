@@ -8,5 +8,7 @@ return {
       -- your configuration comes here; leave empty for default settings
       -- NOTE: You must configure `cmd` in `config.cmd` unless you have installed via mason
     },
+    -- for projects located outside of the target (not a child of the root)
+    broad_search = true,
   },
 }
