@@ -3,7 +3,8 @@
 local buildSlnCmd = { "dotnet", "build" }
 local cleanSlnCmd = { "dotnet", "msbuild", "-t:clean" }
 local rebuildSlnCmd = { "dotnet", "msbuild", "-t:rebuild" }
-local addPackageCmd = { "dotnet", "add", "[PROJECT]", "package", "<package name>" }
+local addPackageCmd =
+  { "dotnet", "add", "[PROJECT]", "package", "<package name>", "-s", "<source url>", "-v", "<version>" }
 local addProjRefCmd = { "dotnet", "add", "reference", "[PROJECT_PATH]" }
 
 -- NOTE: This is the dotnet sdk flavor of Clean/Rebuild as this commadn is not directly present in
@@ -141,14 +142,6 @@ vim.keymap.set("n", "<C-b>c", function()
   executeCmd(cleanSlnCmd)
 end, { desc = "[C]lean Solution" })
 
-vim.keymap.set("n", "<leader>dap", function()
-  vim.ui.input({ prompt = "Package name: " }, function(input)
-    addPackageCmd[3] = utils.find_proj_root()
-    addPackageCmd[5] = input
-    executeCmd(addPackageCmd)
-  end)
-end, { desc = "[B]uild Solution" })
-
 -- user commands
 vim.api.nvim_create_user_command("CSAddProtoByName", function()
   vim.ui.input({ prompt = "Protobuf name: " }, function(input)
@@ -209,6 +202,9 @@ vim.api.nvim_create_autocmd({ "BufEnter", "FileType" }, {
     end, { desc = "[D]otnet [P]roject [R]eference" })
   end,
 })
+
+local nuget_utils = require("user.cs_nuget_utils")
+nuget_utils.setup()
 
 -- we want to create a new proto file
 --    we need to know where to place the file

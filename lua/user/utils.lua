@@ -133,6 +133,41 @@ function M.create_home_dir_if_not_exists(path)
   return false, "file already exists"
 end
 
+--- Execute a command and display the output
+--- @param cmd table The command to execute
+function M.execute_cmd(cmd)
+  local command_str = table.concat(cmd, " ")
+  vim.notify("Executing: " .. command_str, vim.log.levels.INFO)
+
+  vim.fn.jobstart(cmd, {
+    on_exit = function(_, exit_code)
+      if exit_code == 0 then
+        vim.notify("Command completed successfully", vim.log.levels.INFO)
+      else
+        vim.notify("Command failed with exit code: " .. exit_code, vim.log.levels.ERROR)
+      end
+    end,
+    on_stdout = function(_, data)
+      if data and #data > 0 then
+        local output = table.concat(data, "\n")
+        if output ~= "" then
+          print(output)
+        end
+      end
+    end,
+    on_stderr = function(_, data)
+      if data and #data > 0 then
+        local error_msg = table.concat(data, "\n")
+        if error_msg ~= "" then
+          vim.notify(error_msg, vim.log.levels.ERROR)
+        end
+      end
+    end,
+    stdout_buffered = true,
+    stderr_buffered = true,
+  })
+end
+
 -- Create a floating confirmation dialog
 ---@param message string: message to display in the dialog
 ---@param callback function: function to call with the result (boolean)
