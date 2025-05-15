@@ -16,3 +16,5 @@ vim.cmd.hi("Comment gui=italic")
 
 local DASHBOARD_COLOR = "#a6d189"
 vim.api.nvim_set_hl(0, "SnacksDashboardHeader", { fg = DASHBOARD_COLOR })
+
+vim.opt.fileformat = { "dos" }
