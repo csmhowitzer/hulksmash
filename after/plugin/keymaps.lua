@@ -127,14 +127,17 @@ local add_proto_to_proj = function(name, service)
 end
 
 vim.keymap.set("n", "<C-b>b", function()
+  print("Building Solution...")
   executeCmd(buildSlnCmd)
 end, { desc = "[B]uild Solution" })
 
 vim.keymap.set("n", "<C-b>r", function()
+  print("Rebuilding Solution...")
   executeCmd(rebuildSlnCmd)
 end, { desc = "[R]ebuild Solution" })
 
 vim.keymap.set("n", "<C-b>c", function()
+  print("Cleaning Solution...")
   executeCmd(cleanSlnCmd)
 end, { desc = "[C]lean Solution" })
 
