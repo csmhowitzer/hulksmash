@@ -19,7 +19,6 @@ return {
           { "<leader>q", group = "Quickfix" },
           { "<leader>p", group = "oil explorer", icon = { icon = "", color = "yellow" } },
           { "<leader>r", group = "lsp rename" },
-          { "<leader>m", group = "Mini Surround", icon = { icon = "󱡠", color = "cyan" } },
           { "<leader>a", group = "augment ai" },
           { "<leader>y", group = "quit session (persistance)" },
           { "<leader>t", group = "custom transparency", icon = { icon = "", color = "cyan" } },
@@ -30,7 +29,7 @@ return {
           { "[", group = "prev" },
           { "]", group = "next" },
           { "g", group = "goto" },
-          { "gs", group = "surround" },
+          { "m", group = "surround" },
           { "z", group = "fold" },
           {
             "<leader>b",
