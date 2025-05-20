@@ -31,6 +31,8 @@ return {
           { "g", group = "goto" },
           { "m", group = "surround" },
           { "z", group = "fold" },
+          { "-", group = "obsidian" },
+          { "=", group = "scratch" },
           {
             "<leader>b",
             group = "buffer",

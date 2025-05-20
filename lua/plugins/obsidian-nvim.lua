@@ -7,28 +7,22 @@ return {
   dependencies = {
     "nvim-lua/plenary.nvim",
   },
-  opts = {
-    workspaces = {
-      {
-        name = "TheAbyss",
-        path = "~/vaults/TheAbyss",
-      },
-      {
-        name = "personal",
-        path = "~/vaults/personal",
-      },
-      {
-        name = "work",
-        path = "~/vaults/work",
-      },
-    },
-  },
   config = function()
     local opt = vim.opt
     require("obsidian").setup({
-      completion = {
-        nvim_cmp = true, -- set to false to disable completion
-        min_chars = 2, -- completions start at 2chars
+      workspaces = {
+        {
+          name = "TheAbyss",
+          path = "~/vaults/TheAbyss",
+        },
+        {
+          name = "personal",
+          path = "~/vaults/personal",
+        },
+        {
+          name = "work",
+          path = "~/vaults/work",
+        },
       },
       -- Optional, by default when you use `:ObsidianFollowLink` on a link to an external
       -- URL it will be ignored but you can customize this behavior here.
