@@ -1,44 +1,31 @@
 return {
-  "epwalsh/obsidian.nvim",
-  version = "*", -- recommended, use latest release instead of latest commit
-  --lazy = false,
+  "obsidian-nvim/obsidian.nvim",
+  version = "*",
+  lazy = true,
   event = "VeryLazy",
   ft = "markdown",
-  -- Replace the above line with this if you only want to load obsidian.nvim for markdown files in your vault:
-  -- event = {
-  --   -- If you want to use the home shortcut '~' here you need to call 'vim.fn.expand'.
-  --   -- E.g. "BufReadPre " .. vim.fn.expand "~" .. "/my-vault/*.md"
-  --   -- refer to `:h file-pattern` for more examples
-  --   'BufReadPre '
-  --     .. vim.fn.expand '~'
-  --     .. '/vaults/personal/*.md',
-  --   'BufNewFile ' .. vim.fn.expand '~' .. '/vaults/personal/*.md',
-  -- },
   dependencies = {
-    -- Required.
-    "hrsh7th/nvim-cmp",
     "nvim-lua/plenary.nvim",
-
-    -- see below for full list of optional dependencies 👇
   },
-  -- opts = {
+  opts = {
+    workspaces = {
+      {
+        name = "TheAbyss",
+        path = "~/vaults/TheAbyss",
+      },
+      {
+        name = "personal",
+        path = "~/vaults/personal",
+      },
+      {
+        name = "work",
+        path = "~/vaults/work",
+      },
+    },
+  },
   config = function()
     local opt = vim.opt
     require("obsidian").setup({
-      workspaces = {
-        {
-          name = "TheAbyss",
-          path = "~/vaults/TheAbyss",
-        },
-        {
-          name = "personal",
-          path = "~/vaults/personal",
-        },
-        {
-          name = "work",
-          path = "~/vaults/work",
-        },
-      },
       completion = {
         nvim_cmp = true, -- set to false to disable completion
         min_chars = 2, -- completions start at 2chars
