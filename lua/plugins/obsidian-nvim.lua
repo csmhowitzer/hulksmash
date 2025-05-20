@@ -52,7 +52,7 @@ return {
     vim.keymap.set("n", "--", "<CMD>ObsidianNew<CR>", { desc = "Open [N]ew Obsidian note" })
     -- vim.keymap.set('n', '-', builtin.command('ObsidianNew', vim.fn.input 'Name: '), { desc = 'Open [N]ew Obsidian note' })
     vim.keymap.set("n", "-t", "<CMD>ObsidianToday<CR>", { desc = "Opens a new Obsidian daily for [T]oday" })
-    vim.keymap.set("n", "-s", "<CMD>ObsidianSearch<CR>", { desc = "Obsidian [S]earch" })
+    vim.keymap.set("n", "-/", "<CMD>ObsidianSearch<CR>", { desc = "Obsidian Notes Grep" })
     vim.keymap.set("n", "-w", "<CMD>ObsidianWorkspace<CR>", { desc = "Obsidian Select [W]orkspace" })
     -- Also, hitting <CR> on any line in Normal mode will do this
     vim.keymap.set("n", "-c", "<CMD>ObsidianToggleCheckbox<CR>", { desc = "Obsidian Toggle [C]heckbox" })
