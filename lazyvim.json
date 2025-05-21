@@ -3,7 +3,6 @@
     "lazyvim.plugins.extras.coding.luasnip",
     "lazyvim.plugins.extras.coding.mini-surround",
     "lazyvim.plugins.extras.editor.telescope",
-    "lazyvim.plugins.extras.lang.markdown",
     "lazyvim.plugins.extras.lang.sql",
     "lazyvim.plugins.extras.lang.vue",
     "lazyvim.plugins.extras.lang.yaml",
