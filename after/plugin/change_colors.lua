@@ -8,6 +8,7 @@ function ToggleThru()
   vim.api.nvim_set_hl(0, "LineNrAbove", { fg = "#6078A0" })
   -- vim.api.nvim_set_hl(0, 'CursorLineNr', )
   vim.api.nvim_set_hl(0, "LineNrBelow", { fg = "#6078A0" })
+  vim.api.nvim_set_hl(0, "WinSeparator", { fg = "#638860" })
 end
 
 function ToggleDark()
@@ -17,6 +18,7 @@ function ToggleDark()
   vim.api.nvim_set_hl(0, "Normal", { bg = "#060609" })
   vim.api.nvim_set_hl(0, "NormalFloat", { bg = "#060609" })
   vim.api.nvim_set_hl(0, "TelescopeNormal", { bg = "#060609" })
+  vim.api.nvim_set_hl(0, "WinSeparator", { fg = "#638860" })
 end
 
 vim.keymap.set("n", "<leader>tt", "<cmd>lua ToggleThru()<CR>", { desc = "Toggle Transparent background (transparent)" })
