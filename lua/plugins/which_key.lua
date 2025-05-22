@@ -29,7 +29,7 @@ return {
           { "[", group = "prev" },
           { "]", group = "next" },
           { "g", group = "goto" },
-          { "m", group = "surround" },
+          { "gs", group = "surround" },
           { "z", group = "fold" },
           { "-", group = "obsidian" },
           { "=", group = "scratch" },
