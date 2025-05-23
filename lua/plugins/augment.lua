@@ -115,7 +115,7 @@ return {
 
       vim.keymap.set({ "n", "v" }, "<leader>ac", "<CMD>Augment chat<CR>", { desc = "[A]ugment [C]hat" })
       vim.keymap.set("n", "<leader>an", "<CMD>Augment chat new<CR>", { desc = "[A]ugment Chat [N]ew" })
-      vim.keymap.set("n", "<leader>at", "<CMD>Augment chat-toggle<CR>", { desc = "[A]ugment Chat [T]oggle" })
+      vim.keymap.set("n", "<leader>aw", "<CMD>Augment chat-toggle<CR>", { desc = "[A]ugment Chat Toggle [W]indow" })
       vim.keymap.set("n", "<leader>asi", "<CMD>Augment signin<CR>", { desc = "[A]ugment [S]ign[I]n" })
       vim.keymap.set("n", "<leader>aso", "<CMD>Augment signout<CR>", { desc = "[A]ugment [S]ign[O]ut" })
       vim.keymap.set("n", "<leader>ast", "<CMD>Augment status<CR>", { desc = "[A]ugment [S]tatus" })
@@ -144,12 +144,17 @@ return {
         list_workspaces()
       end, { desc = "[A]ugment [L]ist [W]orkspaces" })
 
-      vim.keymap.set("n", "<leader>aw", function()
+      vim.keymap.set("n", "<leader>aacw", function()
         add_workspace_folder()
-      end, { desc = "[A]ugment Add [W]orkspace" })
-      vim.keymap.set("n", "<leader>awp", function()
-        add_workspace_folder(vim.fn.getcwd())
-      end, { desc = "[A]ugment Add [W]orkspace [P]ath" })
+      end, { desc = "[A]ugment [A]dd [C]ustom [W]orkspace" })
+      vim.keymap.set("n", "<leader>aaw", function()
+        print(vim.fn.getcwd())
+        utils.confirm_dialog("Do you want to add this path: " .. vim.fn.getcwd(), function(answer)
+          if answer == true then
+            add_workspace_folder(vim.fn.getcwd())
+          end
+        end)
+      end, { desc = "[A]ugment [A]dd [W]orkspace Path" })
 
       vim.keymap.set("i", "<C-y>", function()
         Augment_Accept()

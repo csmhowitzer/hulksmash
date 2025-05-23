@@ -172,7 +172,15 @@ end
 ---@param message string: message to display in the dialog
 ---@param callback function: function to call with the result (boolean)
 function M.confirm_dialog(message, callback)
-  local width = 50
+  M.confirm_dialog(message, "", callback)
+end
+
+-- Create a floating confirmation dialog
+---@param message string: message to display in the dialog
+---@param title string: title to display in the dialog
+---@param callback function: function to call with the result (boolean)
+function M.confirm_dialog(message, title, callback)
+  local width = 20 + #message
   local height = 3
   local bufnr = vim.api.nvim_create_buf(false, true)
 
@@ -191,6 +199,7 @@ function M.confirm_dialog(message, callback)
   -- Set buffer options
   vim.api.nvim_set_option_value("modifiable", false, { buf = bufnr })
   vim.api.nvim_set_option_value("buftype", "nofile", { buf = bufnr })
+  vim.api.nvim_set_option_value("background", "none", { buf = bufnr })
 
   -- Create window
   local win_opts = {
@@ -202,6 +211,11 @@ function M.confirm_dialog(message, callback)
     style = "minimal",
     border = "rounded",
   }
+
+  if title ~= nil and title ~= "" then
+    win_opts.title = title
+  end
+
   local winnr = vim.api.nvim_open_win(bufnr, true, win_opts)
 
   -- Set window options
