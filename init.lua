@@ -14,7 +14,7 @@ vim.api.nvim_set_hl(0, "SignColumn", { fg = "#CB444A" }) -- a pinkish color
 -- You can configure highlights by doing something like
 vim.cmd.hi("Comment gui=italic")
 
-vim.cmd([[hi @lsp.type.constantName.cs guifg=#81c8be]])
+vim.cmd([[hi @lsp.type.constant.cs guifg=#fab387]])
 
 local DASHBOARD_COLOR = "#a6d189"
 vim.api.nvim_set_hl(0, "SnacksDashboardHeader", { fg = DASHBOARD_COLOR })
