@@ -13,6 +13,9 @@ vim.keymap.del("n", "<leader>qS", { desc = "Select Session" })
 vim.keymap.del("n", "<leader>ql", { desc = "Restore Last Session" })
 vim.keymap.del("n", "<leader>qd", { desc = "Don't Save Current Session" })
 
+-- Treesitter
+vim.keymap.set("n", "<leader>ii", "<cmd>Inspect<CR>", { desc = "Inspect Treesitter Node" })
+
 -- Set highlight on search, but clear on pressing <Esc> in normal mode
 vim.opt.hlsearch = false
 vim.opt.incsearch = true
