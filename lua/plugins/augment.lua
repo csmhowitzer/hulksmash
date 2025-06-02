@@ -130,15 +130,15 @@ return {
         end
       end, { desc = "[A]ugment [T]oggle" })
 
-      -- vim.keymap.set("n", "<leader>atab", function()
-      --   if vim.g.augment_disable_tab_mapping == false then
-      --     vim.g.augment_disable_tab_mapping = true
-      --     vim.notify("Augment <Tab> disabled", vim.log.levels.INFO)
-      --   else
-      --     vim.g.augment_disable_tab_mapping = false
-      --     vim.notify("Augment <Tab> enabled", vim.log.levels.INFO)
-      --   end
-      -- end, { desc = "[A]ugment Toggle [T]ab completion" })
+      vim.keymap.set("n", "<leader>atab", function()
+        if vim.g.augment_disable_tab_mapping == false then
+          vim.g.augment_disable_tab_mapping = true
+          vim.notify("Augment <Tab> disabled", vim.log.levels.INFO)
+        else
+          vim.g.augment_disable_tab_mapping = false
+          vim.notify("Augment <Tab> enabled", vim.log.levels.INFO)
+        end
+      end, { desc = "[A]ugment Toggle [T]ab completion" })
 
       vim.keymap.set("n", "<leader>alw", function()
         list_workspaces()

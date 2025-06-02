@@ -12,16 +12,16 @@ return {
     require("obsidian").setup({
       workspaces = {
         {
+          name = "work",
+          path = "~/vaults/work",
+        },
+        {
           name = "TheAbyss",
           path = "~/vaults/TheAbyss",
         },
         {
           name = "personal",
           path = "~/vaults/personal",
-        },
-        {
-          name = "work",
-          path = "~/vaults/work",
         },
       },
       -- Optional, by default when you use `:ObsidianFollowLink` on a link to an external
