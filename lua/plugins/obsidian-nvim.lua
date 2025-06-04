@@ -43,6 +43,14 @@ return {
         -- vim.fn.jobstart({"xdg-open", url})  -- linux
         -- vim.cmd(':silent exec "!start ' .. url .. '"') -- Windows
       end,
+      templates = {
+        folder = "Templates",
+        substitutions = {
+          IterNum = function()
+            return tonumber(require("os").date("%U")) / 2
+          end,
+        },
+      },
       -- see below for full list of options 👇
     })
 
@@ -52,10 +60,20 @@ return {
     vim.keymap.set("n", "--", "<CMD>ObsidianNew<CR>", { desc = "Open [N]ew Obsidian note" })
     -- vim.keymap.set('n', '-', builtin.command('ObsidianNew', vim.fn.input 'Name: '), { desc = 'Open [N]ew Obsidian note' })
     vim.keymap.set("n", "-t", "<CMD>ObsidianToday<CR>", { desc = "Opens a new Obsidian daily for [T]oday" })
+    vim.keymap.set("n", "-y", "<CMD>ObsidianYesterday<CR>", { desc = "Opens/Creates a Obsidian daily for [Y]esterday" })
     vim.keymap.set("n", "-/", "<CMD>ObsidianSearch<CR>", { desc = "Obsidian Notes Grep" })
     vim.keymap.set("n", "-w", "<CMD>ObsidianWorkspace<CR>", { desc = "Obsidian Select [W]orkspace" })
-    -- Also, hitting <CR> on any line in Normal mode will do this
+    vim.keymap.set("n", "-p", "<CMD>ObsidianNewFromTemplate<CR>", { desc = "Creates a new templated note" })
+    vim.keymap.set(
+      "n",
+      "-r",
+      "<CMD>ObsidianNewFromTemplate RetroNotes RetroNotes<CR>",
+      { desc = "Creates a new templated note" }
+    )
+
+    -- INFO: Pressing <CR> on any line with text will insert an loop through the checkbox options (As long as you're in a Obsidian workspace)
     vim.keymap.set("n", "-c", "<CMD>ObsidianToggleCheckbox<CR>", { desc = "Obsidian Toggle [C]heckbox" })
+
     vim.keymap.set("n", "-fl", "<CMD>ObsidianFollowLink<CR>", { desc = "Obsidian [F]ollow [L]ink" })
     vim.keymap.set("v", "<leader>l", "<CMD>ObsidianLink<CR>", { desc = "Obsidian [L]ink" })
     vim.keymap.set("v", "<leader>ln", "<CMD>ObsidianLinkNew<CR>", { desc = "Obsidian [L]ink [N]ew" })
