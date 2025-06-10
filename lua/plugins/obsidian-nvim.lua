@@ -1,3 +1,4 @@
+---@diagnostic disable: missing-fields
 return {
   "obsidian-nvim/obsidian.nvim",
   version = "*",
@@ -9,22 +10,24 @@ return {
   },
   config = function()
     local opt = vim.opt
-    require("obsidian").setup({
-      workspaces = {
-        {
-          name = "work",
-          path = "~/vaults/work",
-        },
-        {
-          name = "TheAbyss",
-          path = "~/vaults/TheAbyss",
-        },
-        {
-          name = "personal",
-          path = "~/vaults/personal",
-        },
+    local obsidian = require("obsidian")
+
+    local worksapces = {
+      {
+        name = "work",
+        path = "~/vaults/work",
       },
-      -- Optional, by default when you use `:ObsidianFollowLink` on a link to an external
+      {
+        name = "TheAbyss",
+        path = "~/vaults/TheAbyss",
+      },
+      {
+        name = "personal",
+        path = "~/vaults/personal",
+      },
+    }
+    obsidian.setup({
+      workspaces = worksapces, -- Optional, by default when you use `:ObsidianFollowLink` on a link to an external
       -- URL it will be ignored but you can customize this behavior here.
       ---@param url string
       follow_url_func = function(url)
@@ -55,21 +58,82 @@ return {
     })
 
     opt.conceallevel = 2
-    --local builtin = require 'obsidian.Client'
-    -- The below is what works, trying another way
+
+    local iter_offset = 1
+    local iteration_year = os.date("%Y")
+    local current_week = tonumber(os.date("%U"))
+    local iteration_num = math.floor(current_week / 2) + iter_offset
+    local prior_num = iteration_num - 1
+    local retro_filename = "Iter_" .. iteration_num .. "_" .. iteration_year .. ".md"
+    local prior_filename = "Iter_" .. prior_num .. "_" .. iteration_year .. ".md"
+
+    vim.keymap.set("n", "-r", function()
+      local client = obsidian.get_client()
+      local workspace = client.current_workspace
+
+      if not client then
+        vim.notify("No active Obsidian workspace", vim.log.levels.WARN)
+        return
+      end
+      if not workspace or not workspace.path then
+        vim.notify("Cannot determine current workspce path", vim.log.levels.WARN)
+        return
+      end
+
+      local full_path = vim.fn.expand(workspace.path.filename .. "/" .. retro_filename)
+      local note_exists = vim.fn.filereadable(full_path) == 1
+
+      if note_exists then
+        client:open_note(retro_filename)
+        vim.notify("Opened existing retrospective for Iteration " .. iteration_num, vim.log.levels.INFO)
+      else
+        local templates_dir = workspace.path.filename .. "/Templates"
+        local retro_template_path = templates_dir .. "/RetroNotes.md"
+        local template_exists = vim.fn.filereadable(retro_template_path) == 1
+
+        if template_exists then
+          vim.cmd("ObsidianNewFromTemplate " .. retro_filename .. " RetroNotes")
+          vim.notify("Created new retrospective for Iteration " .. iteration_num, vim.log.levels.INFO)
+        else
+          vim.notify(
+            'Template for Retrospectives notes not found. Please create a template named "RetroNotes.md" in your templates directory.',
+            vim.log.levels.INFO
+          )
+        end
+      end
+    end, { desc = "Create/Open Note for current iteration" })
+
+    vim.keymap.set("n", "-R", function()
+      local client = obsidian.get_client()
+      local workspace = client.current_workspace
+
+      if not client then
+        vim.notify("No active Obsidian workspace", vim.log.levels.WARN)
+        return
+      end
+      if not workspace or not workspace.path then
+        vim.notify("Cannot determine current workspce path", vim.log.levels.WARN)
+        return
+      end
+
+      -- Construcvt the full path to the note
+      local full_path = vim.fn.expand(workspace.path.filename .. "/" .. prior_filename)
+      local note_exists = vim.fn.filereadable(full_path) == 1
+
+      if note_exists then
+        client:open_note(prior_filename)
+        vim.notify("Opened existing retrospective for Iteration " .. prior_num, vim.log.levels.INFO)
+      else
+        vim.notify("No note found for previous iteration (" .. prior_num .. ")")
+      end
+    end, { desc = "Open note for previous iteration" })
+
     vim.keymap.set("n", "--", "<CMD>ObsidianNew<CR>", { desc = "Open [N]ew Obsidian note" })
-    -- vim.keymap.set('n', '-', builtin.command('ObsidianNew', vim.fn.input 'Name: '), { desc = 'Open [N]ew Obsidian note' })
     vim.keymap.set("n", "-t", "<CMD>ObsidianToday<CR>", { desc = "Opens a new Obsidian daily for [T]oday" })
     vim.keymap.set("n", "-y", "<CMD>ObsidianYesterday<CR>", { desc = "Opens/Creates a Obsidian daily for [Y]esterday" })
     vim.keymap.set("n", "-/", "<CMD>ObsidianSearch<CR>", { desc = "Obsidian Notes Grep" })
     vim.keymap.set("n", "-w", "<CMD>ObsidianWorkspace<CR>", { desc = "Obsidian Select [W]orkspace" })
     vim.keymap.set("n", "-p", "<CMD>ObsidianNewFromTemplate<CR>", { desc = "Creates a new templated note" })
-    vim.keymap.set(
-      "n",
-      "-r",
-      "<CMD>ObsidianNewFromTemplate RetroNotes RetroNotes<CR>",
-      { desc = "Creates a new templated note" }
-    )
 
     -- INFO: Pressing <CR> on any line with text will insert an loop through the checkbox options (As long as you're in a Obsidian workspace)
     vim.keymap.set("n", "-c", "<CMD>ObsidianToggleCheckbox<CR>", { desc = "Obsidian Toggle [C]heckbox" })

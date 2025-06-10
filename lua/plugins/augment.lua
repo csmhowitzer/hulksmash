@@ -8,6 +8,128 @@ return {
       local utils = require("user.utils")
       local workspace_path = "~/.augment/workspaces.json"
 
+      local augment_buffer_content = {}
+      local augment_message_history = {}
+      local history_index = 0
+
+      local function navigate_history(direction)
+        if #augment_message_history == 0 then
+          return
+        end
+
+        if direction == "up" then
+          history_index = math.min(history_index + 1, #augment_message_history)
+        else
+          history_index = math.max(history_index - 1, 0)
+        end
+
+        if history_index > 0 then
+          local historic_message = augment_message_history[#augment_message_history - history_index + 1]
+          vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(historic_message, "\n"))
+        else
+          vim.api.nvim_buf_set_lines(0, 0, -1, false, {})
+        end
+      end
+
+      local function save_to_history(message)
+        table.insert(augment_message_history, message)
+        history_index = 0
+      end
+
+      local function open_augment_chat_buffer()
+        -- Create a new buffer
+        local bufnr = vim.api.nvim_create_buf(false, true)
+
+        -- Set buffer options
+        vim.api.nvim_set_option_value("bufhidden", "hide", { buf = bufnr })
+        vim.api.nvim_set_option_value("filetype", "markdown", { buf = bufnr })
+
+        -- Calculate window dimensions
+        local height = math.floor(vim.o.lines / 4)
+        local width = math.floor(vim.o.columns / 3)
+        local max_width = 100
+        width = width < max_width and width or max_width
+
+        local row = 2
+        local col = math.floor((vim.o.columns - width) / 2)
+
+        -- Create window
+        local win_id = vim.api.nvim_open_win(bufnr, true, {
+          relative = "editor",
+          row = row,
+          col = col,
+          width = width,
+          height = height,
+          style = "minimal",
+          border = "rounded",
+          title = " 󰚩 Augment Chat 󰚩 ",
+          title_pos = "center",
+          footer = " q close; <CR> send; <C-n>, <C-p>, nav history ",
+          footer_pos = "center",
+        })
+
+        -- Set window options
+        vim.api.nvim_set_option_value("wrap", true, { win = win_id })
+        vim.api.nvim_set_option_value("linebreak", true, { win = win_id })
+        vim.api.nvim_set_option_value(
+          "winhighlight",
+          "FloatBorder:AugmentChatBorder,FloatTitle:AugmentChatTitle,FloatFooter:AugmentChatFooter",
+          { win = win_id }
+        )
+        vim.api.nvim_set_hl(0, "AugmentChatBorder", { fg = "#a6d189", bold = true })
+        vim.api.nvim_set_hl(0, "AugmentChatTitle", { fg = "#74c7ec", bold = true })
+        vim.api.nvim_set_hl(0, "AugmentChatFooter", { fg = "#74c7ec", bold = true })
+
+        if augment_buffer_content and #augment_buffer_content > 0 then
+          vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, augment_buffer_content)
+        end
+
+        -- Add keymapping to send content to Augment
+        local function send_to_augment()
+          local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+          local content = table.concat(lines, " ")
+
+          -- Clear the buffer content storage
+          augment_buffer_content = {}
+
+          -- Send to Augment
+          vim.cmd("Augment chat " .. vim.fn.escape(content, '"\\'))
+          vim.api.nvim_win_close(win_id, true)
+        end
+
+        local function close_window()
+          augment_buffer_content = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+          vim.api.nvim_win_close(win_id, true)
+        end
+
+        vim.cmd("startinsert")
+
+        vim.keymap.set("n", "<C-y>", function()
+          save_to_history(table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n"))
+          send_to_augment()
+        end, { buffer = bufnr, desc = "Send to Augment" })
+        vim.keymap.set("n", "<CR>", function()
+          save_to_history(table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n"))
+          send_to_augment()
+        end, { buffer = bufnr, desc = "Send to Augment" })
+        vim.keymap.set("n", "<Esc>", function()
+          close_window()
+        end, { buffer = bufnr, desc = "Close Augment Chat" })
+        vim.keymap.set("n", "q", function()
+          close_window()
+        end, { buffer = bufnr, desc = "Close Augment Chat" })
+        vim.keymap.set("n", "<C-n>", function()
+          navigate_history("up")
+        end, { buffer = bufnr, desc = "Navigate history up" })
+        vim.keymap.set("n", "<C-p>", function()
+          navigate_history("down")
+        end, { buffer = bufnr, desc = "Navigate history down" })
+      end
+
+      vim.keymap.set("n", "<leader>ab", function()
+        open_augment_chat_buffer()
+      end, { desc = "[A]ugment [B]uffer" })
+
       --- Reads the workspaces from the config file.
       --- @return any
       local read_workspaces = function()

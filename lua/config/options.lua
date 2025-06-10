@@ -6,8 +6,8 @@ vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
 -- Augment configuration
-vim.g.augment_disable_tab_mapping = true
-vim.g.augment_disable_completions = false
+-- vim.g.augment_disable_tab_mapping = false
+-- vim.g.augment_disable_completions = false
 
 -- Set to true if you have a Nerd Font installed
 vim.g.have_nerd_font = true
