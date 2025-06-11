@@ -17,6 +17,9 @@ vim.g.neovim_ligatures = 1
 vim.opt.number = true
 vim.opt.relativenumber = true
 
+-- no swap files
+vim.opt.swapfile = true
+
 -- set the line length via a colored column
 vim.opt.colorcolumn = "120"
 

@@ -20,3 +20,4 @@ local DASHBOARD_COLOR = "#a6d189"
 vim.api.nvim_set_hl(0, "SnacksDashboardHeader", { fg = DASHBOARD_COLOR })
 
 vim.opt.fileformats = { "unix", "dos" }
+vim.opt.fileformats = "unix,dos"

@@ -69,7 +69,7 @@ vim.keymap.set({ "i", "v" }, "<C-c>", "<Esc>")
 -- faster searching if you have the cursor over the search word
 vim.keymap.set(
   "n",
-  "<leader>s",
+  "<leader>h",
   [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]],
   { desc = "[S]earch for cursor word" }
 )
