@@ -126,9 +126,9 @@ return {
         end, { buffer = bufnr, desc = "Navigate history down" })
       end
 
-      vim.keymap.set("n", "<leader>ab", function()
+      vim.keymap.set({ "n", "v" }, "<leader>ac", function()
         open_augment_chat_buffer()
-      end, { desc = "[A]ugment [B]uffer" })
+      end, { desc = "[A]ugment [C]hat" })
 
       --- Reads the workspaces from the config file.
       --- @return any
@@ -235,7 +235,7 @@ return {
         end
       end
 
-      vim.keymap.set({ "n", "v" }, "<leader>ac", "<CMD>Augment chat<CR>", { desc = "[A]ugment [C]hat" })
+      -- vim.keymap.set({ "n", "v" }, "<leader>ac", "<CMD>Augment chat<CR>", { desc = "[A]ugment [C]hat" })
       vim.keymap.set("n", "<leader>an", "<CMD>Augment chat new<CR>", { desc = "[A]ugment Chat [N]ew" })
       vim.keymap.set("n", "<leader>aw", "<CMD>Augment chat-toggle<CR>", { desc = "[A]ugment Chat Toggle [W]indow" })
       vim.keymap.set("n", "<leader>asi", "<CMD>Augment signin<CR>", { desc = "[A]ugment [S]ign[I]n" })
