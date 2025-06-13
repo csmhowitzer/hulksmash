@@ -76,9 +76,9 @@ return {
           "FloatBorder:AugmentChatBorder,FloatTitle:AugmentChatTitle,FloatFooter:AugmentChatFooter",
           { win = win_id }
         )
-        vim.api.nvim_set_hl(0, "AugmentChatBorder", { fg = "#a6d189", bold = true })
-        vim.api.nvim_set_hl(0, "AugmentChatTitle", { fg = "#74c7ec", bold = true })
-        vim.api.nvim_set_hl(0, "AugmentChatFooter", { fg = "#74c7ec", bold = true })
+        vim.api.nvim_set_hl(0, "AugmentChatBorder", { fg = "#cba6f7", bold = true })
+        vim.api.nvim_set_hl(0, "AugmentChatTitle", { fg = "#a6d189", bold = true })
+        vim.api.nvim_set_hl(0, "AugmentChatFooter", { fg = "#74c7ec", italic = true })
 
         if augment_buffer_content and #augment_buffer_content > 0 then
           vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, augment_buffer_content)
@@ -99,12 +99,13 @@ return {
 
         local function close_window()
           augment_buffer_content = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+          vim.cmd("stopinsert")
           vim.api.nvim_win_close(win_id, true)
         end
 
         vim.cmd("startinsert")
 
-        vim.keymap.set("n", "<C-y>", function()
+        vim.keymap.set({ "n", "i" }, "<C-y>", function()
           save_to_history(table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n"))
           send_to_augment()
         end, { buffer = bufnr, desc = "Send to Augment" })
@@ -112,9 +113,6 @@ return {
           save_to_history(table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n"))
           send_to_augment()
         end, { buffer = bufnr, desc = "Send to Augment" })
-        vim.keymap.set("n", "<Esc>", function()
-          close_window()
-        end, { buffer = bufnr, desc = "Close Augment Chat" })
         vim.keymap.set("n", "q", function()
           close_window()
         end, { buffer = bufnr, desc = "Close Augment Chat" })
@@ -178,7 +176,7 @@ return {
           end
         else
           path = vim.fn.fnamemodify(path, ":p:~")
-          utils.confirm_dialog(string.format("Add (%s) as a workspace path?", path), function(choice)
+          utils.confirm_dialog_basic(string.format("Add (%s) as a workspace path?", path), function(choice)
             if choice then
               add_path(path)
             else
@@ -271,7 +269,7 @@ return {
       end, { desc = "[A]ugment [A]dd [C]ustom [W]orkspace" })
       vim.keymap.set("n", "<leader>aaw", function()
         print(vim.fn.getcwd())
-        utils.confirm_dialog("Do you want to add this path: " .. vim.fn.getcwd(), function(answer)
+        utils.confirm_dialog_basic("Do you want to add this path: " .. vim.fn.getcwd(), function(answer)
           if answer == true then
             add_workspace_folder(vim.fn.getcwd())
           end

@@ -171,15 +171,31 @@ end
 -- Create a floating confirmation dialog
 ---@param message string: message to display in the dialog
 ---@param callback function: function to call with the result (boolean)
-function M.confirm_dialog(message, callback)
-  M.confirm_dialog(message, "", callback)
+---@diagnostic disable-next-line: duplicate-set-field
+function M.confirm_dialog_basic(message, callback)
+  M.confirm_dialog(message, " Confirm? ", "", callback)
 end
-
--- Create a floating confirmation dialog
 ---@param message string: message to display in the dialog
 ---@param title string: title to display in the dialog
 ---@param callback function: function to call with the result (boolean)
-function M.confirm_dialog(message, title, callback)
+---@diagnostic disable-next-line: duplicate-set-field
+function M.confirm_dialog_title(message, title, callback)
+  M.confirm_dialog(message, title, "", callback)
+end
+---@param message string: message to display in the dialog
+---@param footer string: footer to display in the dialog
+---@param callback function: function to call with the result (boolean)
+---@diagnostic disable-next-line: duplicate-set-field
+function M.confirm_dialog_footer(message, footer, callback)
+  M.confirm_dialog(message, " Confirm? ", footer, callback)
+end
+-- Create a floating confirmation dialog
+---@param message string: message to display in the dialog
+---@param title string: title to display in the dialog
+---@param footer string: footer to display in the dialog
+---@param callback function: function to call with the result (boolean)
+---@diagnostic disable-next-line: duplicate-set-field
+function M.confirm_dialog(message, title, footer, callback)
   local width = 20 + #message
   local height = 3
   local bufnr = vim.api.nvim_create_buf(false, true)
@@ -197,29 +213,34 @@ function M.confirm_dialog(message, title, callback)
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, content)
 
   -- Set buffer options
+  vim.api.nvim_set_option_value("bufhidden", "hide", { buf = bufnr })
   vim.api.nvim_set_option_value("modifiable", false, { buf = bufnr })
   vim.api.nvim_set_option_value("buftype", "nofile", { buf = bufnr })
-  vim.api.nvim_set_option_value("background", "none", { buf = bufnr })
 
   -- Create window
-  local win_opts = {
+  local winnr = vim.api.nvim_open_win(bufnr, true, {
     relative = "editor",
-    width = width,
-    height = height,
     row = row,
     col = col,
+    width = width,
+    height = height,
     style = "minimal",
     border = "rounded",
-  }
+    title = title,
+    title_pos = "center",
+    footer = footer,
+    footer_pos = "center",
+  })
 
-  if title ~= nil and title ~= "" then
-    win_opts.title = title
-  end
+  vim.api.nvim_set_option_value(
+    "winhighlight",
+    "FloatBorder:UtilsBorder,FloatTitle:UtilsTitle,FloatFooter:UtilsFooter",
+    { win = winnr }
+  )
 
-  local winnr = vim.api.nvim_open_win(bufnr, true, win_opts)
-
-  -- Set window options
-  vim.api.nvim_set_option_value("winblend", 10, { win = winnr })
+  vim.api.nvim_set_hl(0, "UtilsBorder", { fg = "#f9e2af", bold = true })
+  vim.api.nvim_set_hl(0, "UtilsTitle", { fg = "#89dceb", bold = true })
+  vim.api.nvim_set_hl(0, "UtilsFooter", { fg = "#a6d189", italic = true })
 
   -- Handle keypress
   local close_window = function()
