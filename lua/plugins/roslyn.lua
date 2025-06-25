@@ -32,6 +32,7 @@ return {
         },
       },
       broad_search = true,
+      debug = true,
     },
   },
 }

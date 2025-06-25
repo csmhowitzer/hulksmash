@@ -8,288 +8,642 @@ return {
       local utils = require("user.utils")
       local workspace_path = "~/.augment/workspaces.json"
 
-      local augment_buffer_content = {}
-      local augment_message_history = {}
-      local history_index = 0
+      -- Initialize the Augment modules
+      require("m_augment").setup({
+        workspace_path = workspace_path,
+        max_recent_buffers = 4,
+        max_code_blocks = 10,
+      })
 
-      local function navigate_history(direction)
-        if #augment_message_history == 0 then
-          return
-        end
+      vim.g.augment_workspace_folders = require("m_augment.utils").ingest_workspaces()
 
-        if direction == "up" then
-          history_index = math.min(history_index + 1, #augment_message_history)
-        else
-          history_index = math.max(history_index - 1, 0)
-        end
-
-        if history_index > 0 then
-          local historic_message = augment_message_history[#augment_message_history - history_index + 1]
-          vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(historic_message, "\n"))
-        else
-          vim.api.nvim_buf_set_lines(0, 0, -1, false, {})
-        end
-      end
-
-      local function save_to_history(message)
-        table.insert(augment_message_history, message)
-        history_index = 0
-      end
-
-      local function open_augment_chat_buffer()
-        -- Create a new buffer
-        local bufnr = vim.api.nvim_create_buf(false, true)
-
-        -- Set buffer options
-        vim.api.nvim_set_option_value("bufhidden", "hide", { buf = bufnr })
-        vim.api.nvim_set_option_value("filetype", "markdown", { buf = bufnr })
-
-        -- Calculate window dimensions
-        local height = math.floor(vim.o.lines / 4)
-        local width = math.floor(vim.o.columns / 3)
-        local max_width = 100
-        width = width < max_width and width or max_width
-
-        local row = 2
-        local col = math.floor((vim.o.columns - width) / 2)
-
-        -- Create window
-        local win_id = vim.api.nvim_open_win(bufnr, true, {
-          relative = "editor",
-          row = row,
-          col = col,
-          width = width,
-          height = height,
-          style = "minimal",
-          border = "rounded",
-          title = " 󰚩 Augment Chat 󰚩 ",
-          title_pos = "center",
-          footer = " q close; <CR> send; <C-n>, <C-p>, nav history ",
-          footer_pos = "center",
-        })
-
-        -- Set window options
-        vim.api.nvim_set_option_value("wrap", true, { win = win_id })
-        vim.api.nvim_set_option_value("linebreak", true, { win = win_id })
-        vim.api.nvim_set_option_value(
-          "winhighlight",
-          "FloatBorder:AugmentChatBorder,FloatTitle:AugmentChatTitle,FloatFooter:AugmentChatFooter",
-          { win = win_id }
-        )
-        vim.api.nvim_set_hl(0, "AugmentChatBorder", { fg = "#cba6f7", bold = true })
-        vim.api.nvim_set_hl(0, "AugmentChatTitle", { fg = "#a6d189", bold = true })
-        vim.api.nvim_set_hl(0, "AugmentChatFooter", { fg = "#74c7ec", italic = true })
-
-        if augment_buffer_content and #augment_buffer_content > 0 then
-          vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, augment_buffer_content)
-        end
-
-        -- Add keymapping to send content to Augment
-        local function send_to_augment()
-          local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-          local content = table.concat(lines, " ")
-
-          -- Clear the buffer content storage
-          augment_buffer_content = {}
-
-          -- Send to Augment
-          vim.cmd("Augment chat " .. vim.fn.escape(content, '"\\'))
-          vim.api.nvim_win_close(win_id, true)
-        end
-
-        local function close_window()
-          augment_buffer_content = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-          vim.cmd("stopinsert")
-          vim.api.nvim_win_close(win_id, true)
-        end
-
-        vim.cmd("startinsert")
-
-        vim.keymap.set({ "n", "i" }, "<C-y>", function()
-          save_to_history(table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n"))
-          send_to_augment()
-        end, { buffer = bufnr, desc = "Send to Augment" })
-        vim.keymap.set("n", "<CR>", function()
-          save_to_history(table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n"))
-          send_to_augment()
-        end, { buffer = bufnr, desc = "Send to Augment" })
-        vim.keymap.set("n", "q", function()
-          close_window()
-        end, { buffer = bufnr, desc = "Close Augment Chat" })
-        vim.keymap.set("n", "<C-n>", function()
-          navigate_history("up")
-        end, { buffer = bufnr, desc = "Navigate history up" })
-        vim.keymap.set("n", "<C-p>", function()
-          navigate_history("down")
-        end, { buffer = bufnr, desc = "Navigate history down" })
-      end
-
-      vim.keymap.set({ "n", "v" }, "<leader>ac", function()
-        open_augment_chat_buffer()
-      end, { desc = "[A]ugment [C]hat" })
-
-      --- Reads the workspaces from the config file.
-      --- @return any
-      local read_workspaces = function()
-        local config_path = vim.fn.expand(workspace_path)
-        if not utils.file_exists(config_path) then
-          utils.create_home_dir_if_not_exists(config_path)
-        end
-        local content = utils.read_file_content(config_path)
-
-        local ok, decoded = pcall(vim.json.decode, content)
-        return ok and decoded or {}
-      end
-
-      --- Adds a workspace folder.
-      --- @param path string?
-      --- @return any
-      local add_workspace_folder = function(path)
-        local name = vim.fn.input("Workspace Name: ")
-        if name == "" then
-          return
-        end
-
-        local add_path = function(wksp)
-          wksp = wksp:gsub("\\", "")
-          local workspaces = read_workspaces()
-          if workspaces.workspaces == nil then
-            workspaces.workspaces = {}
-          end
-          table.insert(workspaces.workspaces, {
-            name = name,
-            path = vim.fn.resolve(wksp),
-          })
-          local json = vim.json.encode(workspaces)
-          local file = io.open(vim.fn.expand(workspace_path), "w")
-          if file then
-            file:write(json)
-            file:close()
-            vim.notify("Workspace added successfully", vim.log.levels.INFO)
-          end
-        end
-
-        if path == nil or path == "" then
-          path = vim.fn.input("Workspace Path: ")
-          if path == "" then
-            return
-          end
-        else
-          path = vim.fn.fnamemodify(path, ":p:~")
-          utils.confirm_dialog_basic(string.format("Add (%s) as a workspace path?", path), function(choice)
-            if choice then
-              add_path(path)
-            else
-              return
-            end
-          end)
-        end
-      end
-
-      --- Lists the workspaces.
-      --- @return any
-      local list_workspaces = function()
-        local workspaces = read_workspaces()
-        if workspaces.workspaces then
-          local workspace_list = "Current Workspaces:\n"
-          for _, workspace in ipairs(workspaces.workspaces) do
-            workspace_list = workspace_list .. "- " .. workspace.name .. ": " .. workspace.path .. "\n"
-          end
-          vim.notify(workspace_list, vim.log.levels.INFO)
-        else
-          vim.notify("No workspaces configured", vim.log.levels.INFO)
-        end
-      end
-
-      --- Ingests the workspaces.
-      --- @return any
-      local ingest_workspaces = function()
-        local workspaces = read_workspaces() or {}
-
-        if workspaces == nil or workspaces.workspaces == nil then
-          print("No Augment workspaces configured")
-          return
-        end
-
-        local folders = {}
-        for _, workspace in ipairs(workspaces.workspaces) do
-          table.insert(folders, workspace.path)
-        end
-        if #folders <= 0 then
-          vim.notify("No workspaces configured", vim.log.levels.INFO)
-        end
-        return folders
-      end
-      vim.g.augment_workspace_folders = ingest_workspaces()
-
-      --- Custom function to check nvim-cmp menu visibility
+      -- custom function to check nvim-cmp menu visiblity
       local Augment_Accept = function()
-        -- Check if nvim-cmp menu is visible
+        -- check if nvim-cmp menu is visible
         if require("cmp").visible() then
           require("cmp").confirm({ select = true })
         else
-          -- Call Augment's accept function
+          -- call augment's accept function
           vim.cmd([[call augment#Accept('N/A')]])
         end
       end
-
-      -- vim.keymap.set({ "n", "v" }, "<leader>ac", "<CMD>Augment chat<CR>", { desc = "[A]ugment [C]hat" })
-      vim.keymap.set("n", "<leader>an", "<CMD>Augment chat new<CR>", { desc = "[A]ugment Chat [N]ew" })
-      vim.keymap.set("n", "<leader>aw", "<CMD>Augment chat-toggle<CR>", { desc = "[A]ugment Chat Toggle [W]indow" })
-      vim.keymap.set("n", "<leader>asi", "<CMD>Augment signin<CR>", { desc = "[A]ugment [S]ign[I]n" })
-      vim.keymap.set("n", "<leader>aso", "<CMD>Augment signout<CR>", { desc = "[A]ugment [S]ign[O]ut" })
-      vim.keymap.set("n", "<leader>ast", "<CMD>Augment status<CR>", { desc = "[A]ugment [S]tatus" })
-
-      vim.keymap.set("n", "<leader>atog", function()
-        if vim.g.augment_disable_completions == false then
-          vim.g.augment_disable_completions = true
-          vim.notify("Augment disabled", vim.log.levels.INFO)
-        else
-          vim.g.augment_disable_completions = false
-          vim.notify("Augment enabled", vim.log.levels.INFO)
-        end
-      end, { desc = "[A]ugment [T]oggle" })
-
-      vim.keymap.set("n", "<leader>atab", function()
-        if vim.g.augment_disable_tab_mapping == false then
-          vim.g.augment_disable_tab_mapping = true
-          vim.notify("Augment <Tab> disabled", vim.log.levels.INFO)
-        else
-          vim.g.augment_disable_tab_mapping = false
-          vim.notify("Augment <Tab> enabled", vim.log.levels.INFO)
-        end
-      end, { desc = "[A]ugment Toggle [T]ab completion" })
-
-      vim.keymap.set("n", "<leader>alw", function()
-        list_workspaces()
-      end, { desc = "[A]ugment [L]ist [W]orkspaces" })
-
-      vim.keymap.set("n", "<leader>aacw", function()
-        add_workspace_folder()
-      end, { desc = "[A]ugment [A]dd [C]ustom [W]orkspace" })
-      vim.keymap.set("n", "<leader>aaw", function()
-        print(vim.fn.getcwd())
-        utils.confirm_dialog_basic("Do you want to add this path: " .. vim.fn.getcwd(), function(answer)
-          if answer == true then
-            add_workspace_folder(vim.fn.getcwd())
-          end
-        end)
-      end, { desc = "[A]ugment [A]dd [W]orkspace Path" })
 
       vim.keymap.set("i", "<C-y>", function()
         Augment_Accept()
       end, { desc = "Accept completion or Augment suggestion" })
     end,
-
-    -- vim.api.nvim_create_autocmd('ColorScheme', {
-    --   pattern = 'peachpuff',
-    --   callback = function()
-    --     vim.api.nvim_set_hl(0, 'AugmentSuggestionHighlight', {
-    --       fg = '#888888',
-    --       ctermfg = 8,
-    --       force = true,
-    --     })
-    --   end,
-    -- }),
   },
 }
+
+--   local augment_source_bufnr = nil
+--   local augment_source_file = nil
+--   local augment_buffer_content = {}
+--   local augment_message_history = {}
+--   local history_index = 0
+--
+--   local augment_response_info = {
+--     bufnr = nil,
+--     winid = nil,
+--     ft = nil,
+--     last_updated = nil,
+--   }
+--
+--   local aug_buf_item = {
+--     bufnr = nil,
+--     name = nil,
+--     path = nil,
+--     ft = nil,
+--   }
+--
+--   local aug_code_item = {
+--     lang = nil,
+--     content = nil,
+--     timestamp = nil,
+--   }
+--
+--   local aug_track_buffers = {
+--     max_size = 4,
+--     items = {},
+--   }
+--
+--   local aug_code_gen = {
+--     max_size = 10,
+--     items = {},
+--   }
+--
+--   local function update_recent_buffers()
+--     local current_bufnr = vim.api.nvim_get_current_buf()
+--     local bufname = vim.api.nvim.buf_get_name(current_bufnr)
+--
+--     if bufname == "" or bufname:match("^%[.*%]$") then
+--       return
+--     end
+--
+--     for i, buf in ipairs(aug_track_buffers.items) do
+--       if buf.bufnr == current_bufnr then
+--         table.remove(aug_track_buffers.items, i)
+--         break
+--       end
+--     end
+--
+--     table.insert(aug_track_buffers.items, 1, {
+--       bufnr = current_bufnr,
+--       name = vim.fn.fnamemodify(bufname, ":t"),
+--       path = bufname,
+--       ft = vim.bo[current_bufnr].filetype,
+--     })
+--
+--     if #aug_track_buffers.items > aug_track_buffers.max_size then
+--       table.remove(aug_track_buffers.items, aug_track_buffers.max_size)
+--     end
+--   end
+--
+--   local function add_code_gen(language, content)
+--     table.insert(aug_code_gen.items, 1, {
+--       language = language,
+--       content = content,
+--       timestamp = os.time(),
+--     })
+--
+--     if #aug_code_gen.items > aug_code_gen.max_size then
+--       table.remove(aug_code_gen.items, aug_code_gen.max_size)
+--     end
+--   end
+--
+--   local function update_augment_response_info(bufnr, winid)
+--     augment_response_info.bufnr = bufnr
+--     augment_response_info.winid = winid
+--     augment_response_info.ft = vim.bo[bufnr].filetype
+--     augment_response_info.last_updated = os.time()
+--   end
+--
+--   vim.api.nvim_create_autocmd("BufEnter", {
+--     group = vim.api.nvim_create_augroup("AugmentBufferTracking", { clear = true }),
+--     callback = function()
+--       update_recent_buffers()
+--     end,
+--   })
+--
+--   local function navigate_history(direction)
+--     if #augment_message_history == 0 then
+--       return
+--     end
+--
+--     if direction == "up" then
+--       history_index = math.min(history_index + 1, #augment_message_history)
+--     else
+--       history_index = math.max(history_index - 1, 0)
+--     end
+--
+--     if history_index > 0 then
+--       local historic_message = augment_message_history[#augment_message_history - history_index + 1]
+--       vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(historic_message, "\n"))
+--     else
+--       vim.api.nvim_buf_set_lines(0, 0, -1, false, {})
+--     end
+--   end
+--
+--   local function save_to_history(message)
+--     table.insert(augment_message_history, message)
+--     history_index = 0
+--   end
+--
+--   local function inject_augment_code(chat_bufnr, source_bufnr, source_file)
+--     local bufnr = chat_bufnr or vim.api.nvim_get_current_buf()
+--
+--     local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+--     local code_blocks = {}
+--     local in_code_block = false
+--     local start_line = nil
+--     local language = nil
+--     local current_block = {}
+--
+--     -- parse the buffer to find the code blocks
+--     for i, line in ipairs(lines) do
+--       local block_start = line:match("^```(%w+)")
+--       if block_start and not in_code_block then
+--         in_code_block = true
+--         start_line = i
+--         language = block_start
+--         current_block = {}
+--       elseif line:match("^```") and in_code_block then
+--         in_code_block = false
+--         table.insert(code_blocks, {
+--           start = start_line,
+--           finish = i,
+--           lang = language,
+--           content = current_block,
+--         })
+--       elseif in_code_block then
+--         table.insert(current_block, line)
+--       end
+--     end
+--
+--     if #code_blocks == 0 then
+--       vim.notify("No code blocks founnd in Augment's response", vim.log.levels.ERROR)
+--       return
+--     end
+--
+--     local target_bufnr = source_bufnr
+--     local target_file = source_file
+--
+--     if not target_bufnr or not vim.api.nvim_buf_is_valid(target_bufnr) then
+--       -- Fallback: find the file path if provided in the chat buffer
+--       for i, line in ipairs(lines) do
+--         local path = line:match("File Path: (.+)")
+--         if path then
+--           target_file = path
+--           break
+--         end
+--       end
+--
+--       -- use previous buffer if not in chat
+--       if not target_file or target_file == "" then
+--         vim.notify("Could not determine target file, using previous buffer", vim.log.levels.WARN)
+--         vim.cmd("wincmd p")
+--         target_bufnr = vim.api.nvim_get_current_buf()
+--         target_file = vim.api.nvim_buf_get_name(target_bufnr)
+--       end
+--     end
+--
+--     local selected_block
+--     if #code_blocks > 1 then
+--       local options = {}
+--       for i, block in ipairs(code_blocks) do
+--         local preview = table.concat(block.content, "\n"):sub(1, 50)
+--         if #preview == 50 then
+--           preview = preview .. "..."
+--         end
+--         table.insert(options, string.format("%d: %s (%s)", i, preview, block.lang))
+--       end
+--       vim.ui.select(options, {
+--         prompt = "Select code block to inject:",
+--         format_item = function(item)
+--           return item
+--         end,
+--       }, function(choice, idx)
+--         if idx then
+--           selected_block = code_blocks[idx]
+--         end
+--       end)
+--     else
+--       selected_block = code_blocks[1]
+--     end
+--
+--     if not selected_block then
+--       vim.notify("No code block selected for injection", vim.log.levels.ERROR)
+--       return
+--     end
+--
+--     if target_bufnr and vim.api.nvim_buf_is_valid(target_bufnr) then
+--       local win_id = vim.fn.bufwinid(target_bufnr)
+--       if win_id ~= -1 then
+--         vim.api.nvim_set_current_win(win_id)
+--       else
+--         vim.cmd("wincmd p")
+--         vim.cmd("buffer " .. target_bufnr)
+--       end
+--     elseif target_file and target_file ~= "" then
+--       vim.cmd("wincmd p")
+--       vim.cmd("edit " .. target_file)
+--       target_bufnr = vim.api.nvim_get_current_buf()
+--     else
+--       vim.cmd("wincmd p")
+--       target_bufnr = vim.api.nvim_get_current_buf()
+--     end
+--
+--     local was_modifiable = vim.api.nvim_get_option_value("modifiable", { buf = target_bufnr })
+--     if not was_modifiable then
+--       vim.api.nvim_set_option_value("modifiable", true, { buf = target_bufnr })
+--     end
+--
+--     local cursor_pos = vim.api.nvim_win_get_cursor(0)
+--     local row = cursor_pos[1] - 1
+--
+--     vim.api.nvim_buf_set_lines(target_bufnr, row, row, false, selected_block.content)
+--     require("conform").format({ formatters = { "injected" } })
+--     if not was_modifiable then
+--       vim.api.nvim_set_option_value("modifiable", false, { buf = target_bufnr })
+--     end
+--   end
+--
+--   local function open_augment_chat_buffer()
+--     augment_source_bufnr = vim.api.nvim_get_current_buf()
+--     augment_source_file = vim.api.nvim_buf_get_name(augment_source_bufnr)
+--
+--     -- Create a new buffer
+--     local bufnr = vim.api.nvim_create_buf(false, true)
+--
+--     -- Set buffer options
+--     vim.api.nvim_set_option_value("bufhidden", "hide", { buf = bufnr })
+--     vim.api.nvim_set_option_value("filetype", "markdown", { buf = bufnr })
+--
+--     -- Calculate window dimensions
+--     local height = math.floor(vim.o.lines / 4)
+--     local width = math.floor(vim.o.columns / 3)
+--     local max_width = 100
+--     width = width < max_width and width or max_width
+--
+--     local row = 2
+--     local col = math.floor((vim.o.columns - width) / 2)
+--
+--     -- Create window
+--     local win_id = vim.api.nvim_open_win(bufnr, true, {
+--       relative = "editor",
+--       row = row,
+--       col = col,
+--       width = width,
+--       height = height,
+--       style = "minimal",
+--       border = "rounded",
+--       title = " 󰚩 Augment Chat 󰚩 ",
+--       title_pos = "center",
+--       footer = " q close; <CR> send; <C-n>, <C-p>, nav history ",
+--       footer_pos = "center",
+--     })
+--
+--     update_augment_response_info(bufnr, win_id)
+--
+--     -- Set window options
+--     vim.api.nvim_set_option_value("wrap", true, { win = win_id })
+--     vim.api.nvim_set_option_value("linebreak", true, { win = win_id })
+--     vim.api.nvim_set_option_value(
+--       "winhighlight",
+--       "FloatBorder:AugmentChatBorder,FloatTitle:AugmentChatTitle,FloatFooter:AugmentChatFooter",
+--       { win = win_id }
+--     )
+--     vim.api.nvim_set_hl(0, "AugmentChatBorder", { fg = "#cba6f7", bold = true })
+--     vim.api.nvim_set_hl(0, "AugmentChatTitle", { fg = "#a6d189", bold = true })
+--     vim.api.nvim_set_hl(0, "AugmentChatFooter", { fg = "#74c7ec", italic = true })
+--
+--     if augment_buffer_content and #augment_buffer_content > 0 then
+--       vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, augment_buffer_content)
+--     end
+--
+--     -- Add keymapping to send content to Augment
+--     local function send_to_augment()
+--       local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+--       local content = table.concat(lines, " ")
+--
+--       -- Clear the buffer content storage
+--       augment_buffer_content = {}
+--
+--       -- Send to Augment
+--       vim.cmd("Augment chat " .. vim.fn.escape(content, '"\\'))
+--       vim.api.nvim_win_close(win_id, true)
+--     end
+--
+--     local function close_window()
+--       augment_buffer_content = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+--       vim.cmd("stopinsert")
+--       vim.api.nvim_win_close(win_id, true)
+--     end
+--
+--     vim.cmd("startinsert")
+--
+--     vim.keymap.set({ "n", "i" }, "<C-y>", function()
+--       save_to_history(table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n"))
+--       send_to_augment()
+--     end, { buffer = bufnr, desc = "Send to Augment" })
+--     vim.keymap.set("n", "<CR>", function()
+--       save_to_history(table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n"))
+--       send_to_augment()
+--     end, { buffer = bufnr, desc = "Send to Augment" })
+--     vim.keymap.set("n", "q", function()
+--       close_window()
+--     end, { buffer = bufnr, desc = "Close Augment Chat" })
+--     vim.keymap.set("n", "<C-n>", function()
+--       navigate_history("up")
+--     end, { buffer = bufnr, desc = "Navigate history up" })
+--     vim.keymap.set("n", "<C-p>", function()
+--       navigate_history("down")
+--     end, { buffer = bufnr, desc = "Navigate history down" })
+--   end
+--   vim.keymap.set("n", "<leader>ai", function()
+--     inject_augment_code(nil, augment_source_bufnr, augment_source_file)
+--   end, { desc = "[A]ugment [I]nject code to original file", buffer = bufnr })
+--
+--   vim.keymap.set({ "n", "v" }, "<leader>ac", function()
+--     open_augment_chat_buffer()
+--   end, { desc = "[A]ugment [C]hat" })
+--
+--   -- Add this function after the open_augment_chat_buffer function
+--   local function send_selection_to_augment()
+--     augment_source_bufnr = vim.api.nvim_get_current_buf()
+--     augment_source_file = vim.api.nvim_buf_get_name(augment_source_bufnr)
+--
+--     local mode = vim.fn.mode()
+--     if mode ~= "v" and mode ~= "V" and mode ~= "" then
+--       vim.cmd("normal! gv")
+--     end
+--
+--     local old_reg = vim.fn.getreg('"')
+--     local old_regtype = vim.fn.getregtype('"')
+--
+--     vim.cmd("normal! y")
+--
+--     local selected_text = vim.fn.getreg('"')
+--     vim.fn.setreg('"', old_reg, old_regtype)
+--
+--     -- Get file path and filetype
+--     local absolute_path = vim.fn.expand("%:p")
+--     local filetype = vim.bo.filetype
+--
+--     -- Create the formatted message
+--     local message = string.format("```%s\n%s\n```\n\nFile Path: %s\n\n", filetype, selected_text, absolute_path)
+--
+--     -- Open Augment chat buffer with the formatted message
+--     local bufnr = vim.api.nvim_create_buf(false, true)
+--
+--     -- Set buffer options
+--     vim.api.nvim_set_option_value("bufhidden", "hide", { buf = bufnr })
+--     vim.api.nvim_set_option_value("filetype", "markdown", { buf = bufnr })
+--
+--     -- Calculate window dimensions
+--     local height = math.floor(vim.o.lines / 4)
+--     local width = math.floor(vim.o.columns / 3)
+--     local max_width = 100
+--     width = width < max_width and width or max_width
+--
+--     local row = 2
+--     local col = math.floor((vim.o.columns - width) / 2)
+--
+--     -- Create window
+--     local win_id = vim.api.nvim_open_win(bufnr, true, {
+--       relative = "editor",
+--       row = row,
+--       col = col,
+--       width = width,
+--       height = height,
+--       style = "minimal",
+--       border = "rounded",
+--       title = " 󰚩 Augment Chat 󰚩 ",
+--       title_pos = "center",
+--       footer = " q close; <CR> send; <C-n>, <C-p>, nav history ",
+--       footer_pos = "center",
+--     })
+--
+--     -- Set window options
+--     vim.api.nvim_set_option_value("wrap", true, { win = win_id })
+--     vim.api.nvim_set_option_value("linebreak", true, { win = win_id })
+--     vim.api.nvim_set_option_value(
+--       "winhighlight",
+--       "FloatBorder:AugmentChatBorder,FloatTitle:AugmentChatTitle,FloatFooter:AugmentChatFooter",
+--       { win = win_id }
+--     )
+--     vim.api.nvim_set_hl(0, "AugmentChatBorder", { fg = "#cba6f7", bold = true })
+--     vim.api.nvim_set_hl(0, "AugmentChatTitle", { fg = "#a6d189", bold = true })
+--     vim.api.nvim_set_hl(0, "AugmentChatFooter", { fg = "#74c7ec", italic = true })
+--
+--     -- Set the formatted message in the buffer
+--     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(message, "\n"))
+--
+--     require("conform").format({ formatters = { "injected" } })
+--
+--     -- Position cursor at the end of the buffer for user to start typing
+--     local line_count = vim.api.nvim_buf_line_count(bufnr)
+--     vim.api.nvim_win_set_cursor(win_id, { line_count, 0 })
+--
+--     -- Add keymappings
+--     vim.keymap.set({ "n", "i" }, "<C-y>", function()
+--       save_to_history(table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n"))
+--       local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+--       local content = table.concat(lines, " ")
+--       vim.cmd("Augment chat " .. vim.fn.escape(content, '"\\'))
+--       vim.api.nvim_win_close(win_id, true)
+--     end, { buffer = bufnr, desc = "Send to Augment" })
+--
+--     vim.keymap.set("n", "<CR>", function()
+--       save_to_history(table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n"))
+--       local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+--       local content = table.concat(lines, " ")
+--       vim.cmd("Augment chat " .. vim.fn.escape(content, '"\\'))
+--       vim.api.nvim_win_close(win_id, true)
+--     end, { buffer = bufnr, desc = "Send to Augment" })
+--
+--     vim.keymap.set("n", "q", function()
+--       augment_buffer_content = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+--       vim.cmd("stopinsert")
+--       vim.api.nvim_win_close(win_id, true)
+--     end, { buffer = bufnr, desc = "Close Augment Chat" })
+--
+--     vim.keymap.set("n", "<C-n>", function()
+--       navigate_history("up")
+--     end, { buffer = bufnr, desc = "Navigate history up" })
+--
+--     vim.keymap.set("n", "<C-p>", function()
+--       navigate_history("down")
+--     end, { buffer = bufnr, desc = "Navigate history down" })
+--
+--     -- Start in insert mode at the end of the buffer
+--     vim.cmd("startinsert")
+--   end
+--
+--   -- Add this keymap after the other keymaps
+--   vim.keymap.set("v", "<leader>aw", function()
+--     send_selection_to_augment()
+--   end, { desc = "[A]ugment [W]ith selection" })
+--
+--   --- Reads the workspaces from the config file.
+--   --- @return any
+--   local read_workspaces = function()
+--     local config_path = vim.fn.expand(workspace_path)
+--     if not utils.file_exists(config_path) then
+--       utils.create_home_dir_if_not_exists(config_path)
+--     end
+--     local content = utils.read_file_content(config_path)
+--
+--     local ok, decoded = pcall(vim.json.decode, content)
+--     return ok and decoded or {}
+--   end
+--
+--   --- Adds a workspace folder.
+--   --- @param path string?
+--   --- @return any
+--   local add_workspace_folder = function(path)
+--     local name = vim.fn.input("Workspace Name: ")
+--     if name == "" then
+--       return
+--     end
+--
+--     local add_path = function(wksp)
+--       wksp = wksp:gsub("\\", "")
+--       local workspaces = read_workspaces()
+--       if workspaces.workspaces == nil then
+--         workspaces.workspaces = {}
+--       end
+--       table.insert(workspaces.workspaces, {
+--         name = name,
+--         path = vim.fn.resolve(wksp),
+--       })
+--       local json = vim.json.encode(workspaces)
+--       local file = io.open(vim.fn.expand(workspace_path), "w")
+--       if file then
+--         file:write(json)
+--         file:close()
+--         vim.notify("Workspace added successfully", vim.log.levels.INFO)
+--       end
+--     end
+--
+--     if path == nil or path == "" then
+--       path = vim.fn.input("Workspace Path: ")
+--       if path == "" then
+--         return
+--       end
+--     else
+--       path = vim.fn.fnamemodify(path, ":p:~")
+--       utils.confirm_dialog_basic(string.format("Add (%s) as a workspace path?", path), function(choice)
+--         if choice then
+--           add_path(path)
+--         else
+--           return
+--         end
+--       end)
+--     end
+--   end
+--
+--   --- Lists the workspaces.
+--   --- @return any
+--   local list_workspaces = function()
+--     local workspaces = read_workspaces()
+--     if workspaces.workspaces then
+--       local workspace_list = "Current Workspaces:\n"
+--       for _, workspace in ipairs(workspaces.workspaces) do
+--         workspace_list = workspace_list .. "- " .. workspace.name .. ": " .. workspace.path .. "\n"
+--       end
+--       vim.notify(workspace_list, vim.log.levels.INFO)
+--     else
+--       vim.notify("No workspaces configured", vim.log.levels.INFO)
+--     end
+--   end
+--
+--   --- Ingests the workspaces.
+--   --- @return any
+--   local ingest_workspaces = function()
+--     local workspaces = read_workspaces() or {}
+--
+--     if workspaces == nil or workspaces.workspaces == nil then
+--       print("No Augment workspaces configured")
+--       return
+--     end
+--
+--     local folders = {}
+--     for _, workspace in ipairs(workspaces.workspaces) do
+--       table.insert(folders, workspace.path)
+--     end
+--     if #folders <= 0 then
+--       vim.notify("No workspaces configured", vim.log.levels.INFO)
+--     end
+--     return folders
+--   end
+--   vim.g.augment_workspace_folders = ingest_workspaces()
+--
+--   --- Custom function to check nvim-cmp menu visibility
+--   local Augment_Accept = function()
+--     -- Check if nvim-cmp menu is visible
+--     if require("cmp").visible() then
+--       require("cmp").confirm({ select = true })
+--     else
+--       -- Call Augment's accept function
+--       vim.cmd([[call augment#Accept('N/A')]])
+--     end
+--   end
+--
+--   -- vim.keymap.set({ "n", "v" }, "<leader>ac", "<CMD>Augment chat<CR>", { desc = "[A]ugment [C]hat" })
+--   vim.keymap.set("n", "<leader>an", "<CMD>Augment chat new<CR>", { desc = "[A]ugment Chat [N]ew" })
+--   vim.keymap.set("n", "<leader>aw", "<CMD>Augment chat-toggle<CR>", { desc = "[A]ugment Chat Toggle [W]indow" })
+--   vim.keymap.set("n", "<leader>asi", "<CMD>Augment signin<CR>", { desc = "[A]ugment [S]ign[I]n" })
+--   vim.keymap.set("n", "<leader>aso", "<CMD>Augment signout<CR>", { desc = "[A]ugment [S]ign[O]ut" })
+--   vim.keymap.set("n", "<leader>ast", "<CMD>Augment status<CR>", { desc = "[A]ugment [S]tatus" })
+--
+--   vim.keymap.set("n", "<leader>atog", function()
+--     if vim.g.augment_disable_completions == false then
+--       vim.g.augment_disable_completions = true
+--       vim.notify("Augment disabled", vim.log.levels.INFO)
+--     else
+--       vim.g.augment_disable_completions = false
+--       vim.notify("Augment enabled", vim.log.levels.INFO)
+--     end
+--   end, { desc = "[A]ugment [T]oggle" })
+--
+--   vim.keymap.set("n", "<leader>atab", function()
+--     if vim.g.augment_disable_tab_mapping == false then
+--       vim.g.augment_disable_tab_mapping = true
+--       vim.notify("Augment <Tab> disabled", vim.log.levels.INFO)
+--     else
+--       vim.g.augment_disable_tab_mapping = false
+--       vim.notify("Augment <Tab> enabled", vim.log.levels.INFO)
+--     end
+--   end, { desc = "[A]ugment Toggle [T]ab completion" })
+--
+--   vim.keymap.set("n", "<leader>alw", function()
+--     list_workspaces()
+--   end, { desc = "[A]ugment [L]ist [W]orkspaces" })
+--
+--   vim.keymap.set("n", "<leader>aacw", function()
+--     add_workspace_folder()
+--   end, { desc = "[A]ugment [A]dd [C]ustom [W]orkspace" })
+--   vim.keymap.set("n", "<leader>aaw", function()
+--     print(vim.fn.getcwd())
+--     utils.confirm_dialog_basic("Do you want to add this path: " .. vim.fn.getcwd(), function(answer)
+--       if answer == true then
+--         add_workspace_folder(vim.fn.getcwd())
+--       end
+--     end)
+--   end, { desc = "[A]ugment [A]dd [W]orkspace Path" })
+--
+--   vim.keymap.set("i", "<C-y>", function()
+--     Augment_Accept()
+--   end, { desc = "Accept completion or Augment suggestion" })
+-- end,
+
+-- vim.api.nvim_create_autocmd('ColorScheme', {
+--   pattern = 'peachpuff',
+--   callback = function()
+--     vim.api.nvim_set_hl(0, 'AugmentSuggestionHighlight', {
+--       fg = '#888888',
+--       ctermfg = 8,
+--       force = true,
+--     })
+--   end,
+-- }),

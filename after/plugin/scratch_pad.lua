@@ -176,7 +176,22 @@ function M.setup()
   end, { desc = "Toggle Scratch Buffer" })
   -- Keymaps
   vim.keymap.set("n", "==", function()
-    M.toggle_scratch_pad("markdown")
+    local buffers = Snacks.scratch.list()
+    local current_buf = vim.api.nvim_get_current_buf()
+    local current_buf_name = vim.api.nvim_buf_get_name(current_buf)
+
+    -- Check if current buffer is a scratch buffer
+    local is_scratch = false
+    for _, item in ipairs(buffers) do
+      if item.file and vim.fn.fnamemodify(item.file, ":p") == vim.fn.fnamemodify(current_buf_name, ":p") then
+        is_scratch = true
+        break
+      end
+    end
+
+    if not is_scratch then
+      M.toggle_scratch_pad("markdown")
+    end
   end, { desc = "Toggle Scratch Buffer (Markdown)" })
 
   vim.keymap.set("n", "=c", function()
