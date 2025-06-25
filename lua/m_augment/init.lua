@@ -1,3 +1,6 @@
+---@class AugmentOpts
+---@field inline table|nil Configuration for inline suggestions
+
 local M = {}
 
 local m_utils = require("user.utils")
@@ -7,21 +10,31 @@ local ui = require("m_augment.ui")
 local code = require("m_augment.code")
 local inline = require("m_augment.inline")
 
+---Setup the Augment plugin
+---@param opts AugmentOpts|nil Configuration options
 function M.setup(opts)
   opts = opts or {}
   state.init(opts)
   ui.setup(opts)
+  inline.setup(opts.inline or {})
   M.setup_keymaps(opts)
   M.setup_autocmds()
   M.setup_commands()
   vim.g.augment_workspace_folders = utils.ingest_workspaces()
 end
 
+---Helper function for setting keymaps
+---@param keys string Key combination
+---@param func function Function to execute
+---@param desc string Description for the keymap
+---@param mode string|nil Mode for the keymap (default: "n")
 local map = function(keys, func, desc, mode)
   mode = mode or "n"
   vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = "LSP: " .. desc })
 end
 
+---Setup keymaps for the Augment plugin
+---@param opts AugmentOpts Configuration options
 function M.setup_keymaps(opts)
   vim.keymap.set({ "n", "v" }, "<leader>ac", function()
     ui.open_chat_buffer()
@@ -39,6 +52,15 @@ function M.setup_keymaps(opts)
   vim.keymap.set("n", "<leader>ai", function()
     code.inject_code(nil, state.get_source_buffer(), state.get_source_file())
   end, { desc = "[A]ugment [I]nject code to original file" })
+
+  -- Force inline suggestion keymap
+  vim.keymap.set("n", "<leader>az", function()
+    vim.g.augment_force_inline_suggestion = true
+    code.inject_code(nil, state.get_source_buffer(), state.get_source_file(), function()
+      -- Reset flag after injection is complete
+      vim.g.augment_force_inline_suggestion = false
+    end)
+  end, { desc = "[A]ugment [Z] inline suggestion preview" })
 
   -- Selection to chat keymap
   vim.keymap.set("v", "<leader>aw", function()

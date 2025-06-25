@@ -1,25 +1,88 @@
+---@class CodeBlock
+---@field start integer Starting line number
+---@field finish integer Ending line number
+---@field lang string Programming language
+---@field content string[] Lines of code
+
 local M = {}
 local state = require("m_augment.state")
 
--- may not keep this or is subject to change
-function M.inject_code(chat_bufnr, source_bufnr, source_file)
-  local bufnr = chat_bufnr or state.response_info.bufnr or vim.api.nvim_get_current_buf()
+---Find the Augment response buffer containing code blocks
+---@return integer|nil bufnr Buffer number if found
+---@return string[] lines Lines from the buffer
+function M.find_augment_response_buffer()
+  -- Look for buffers that might contain Augment responses
+  local buffers = vim.api.nvim_list_bufs()
 
-  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  for _, bufnr in ipairs(buffers) do
+    if vim.api.nvim_buf_is_valid(bufnr) then
+      local buf_name = vim.api.nvim_buf_get_name(bufnr)
+      local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+
+      -- Check if this buffer contains code blocks (likely an Augment response)
+      if #lines > 1 then
+        for _, line in ipairs(lines) do
+          if line:match("^%s*```") then
+            -- Update state to track this as the response buffer
+            state.response_info.bufnr = bufnr
+            state.response_info.last_updated = os.time()
+            return bufnr, lines
+          end
+        end
+      end
+    end
+  end
+
+  return nil, {}
+end
+
+---Inject code from chat response into target file
+---@param chat_bufnr integer|nil Chat buffer number
+---@param source_bufnr integer|nil Source buffer number
+---@param source_file string|nil Source file path
+---@param completion_callback function|nil Callback to run when injection is complete
+function M.inject_code(chat_bufnr, source_bufnr, source_file, completion_callback)
+  local bufnr, lines
+
+  -- First try to find the Augment response buffer
+  bufnr, lines = M.find_augment_response_buffer()
+
+  if not bufnr then
+    -- Fallback to current buffer or provided buffer
+    bufnr = chat_bufnr or state.response_info.bufnr or vim.api.nvim_get_current_buf()
+    lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  end
+
   local code_blocks = M.find_code_blocks(lines)
-  local target_info = M.determine_target_file(lines, source_bufnr, source_file)
-  local selected_block = M.select_code_block(code_blocks)
 
-  if not selected_block then
-    vim.notify("No code block selected for injection", vim.log.levels.ERROR)
+  if #code_blocks == 0 then
+    vim.notify("No code blocks found in any buffer", vim.log.levels.ERROR)
+    if completion_callback then completion_callback() end
     return
   end
 
-  M.open_target_file(target_info.bufnr, target_info.file)
-  M.insert_and_format_code(selected_block.content)
-  vim.notify("Code injected successfully", vim.log.levels.INFO)
+  local target_info = M.determine_target_file(lines, source_bufnr, source_file)
+
+  -- Handle selection asynchronously
+  M.select_code_block(code_blocks, function(selected_block)
+    if not selected_block then
+      vim.notify("No code block selected for injection", vim.log.levels.ERROR)
+      if completion_callback then completion_callback() end
+      return
+    end
+
+    local target_bufnr = M.open_target_file(target_info.bufnr, target_info.file)
+    M.insert_and_format_code(selected_block.content, target_bufnr)
+    vim.notify("Code injected successfully", vim.log.levels.INFO)
+
+    -- Call completion callback after injection is done
+    if completion_callback then completion_callback() end
+  end)
 end
 
+---Find and parse code blocks from buffer lines
+---@param lines string[] Lines to search for code blocks
+---@return CodeBlock[] code_blocks List of found code blocks
 function M.find_code_blocks(lines)
   local code_blocks = {}
   local in_code_block = false
@@ -28,35 +91,33 @@ function M.find_code_blocks(lines)
   local current_block = {}
 
   for i, line in ipairs(lines) do
-    local block_start = line:match("^%s*```%s*(%w*)")
+    -- Match opening: ````lua path=file.lua mode=EDIT or ```lua or ````lua
+    local block_start = line:match("^%s*````?%s*(%w*)")
     if block_start and not in_code_block then
       in_code_block = true
       start_line = i
       language = block_start ~= "" and block_start or "text"
       current_block = {}
-    elseif line:match("^%s*```%s*$") and in_code_block then
+    -- Match closing: ```` or ```
+    elseif line:match("^%s*````?%s*$") and in_code_block then
       in_code_block = false
-      table.insert(code_blocks, {
-        start = start_line,
-        finish = i,
-        lang = language,
-        content = current_block,
-      })
-      state.add_code_block(language, current_block)
+      -- Only add blocks that have proper closing markers
+      if #current_block > 0 then
+        table.insert(code_blocks, {
+          start = start_line,
+          finish = i,
+          lang = language,
+          content = current_block,
+        })
+        state.add_code_block(language, current_block)
+      end
     elseif in_code_block then
       table.insert(current_block, line)
     end
   end
 
-  if in_code_block and #current_block > 0 then
-    table.insert(code_blocks, {
-      start = start_line,
-      finish = #lines,
-      lang = language,
-      content = current_block,
-    })
-    state.add_code_block(language, current_block)
-  end
+  -- Don't add unclosed code blocks - they're likely incomplete or malformed
+  -- This prevents injecting explanatory text that comes after code blocks
 
   return code_blocks
 end
@@ -94,34 +155,49 @@ function M.determine_target_file(lines, source_bufnr, source_file)
   return { bufnr = target_bufnr, file = target_file }
 end
 
--- Select jcode block to inject
-function M.select_code_block(code_blocks)
-  local selected_block
-
-  if #code_blocks > 1 then
-    local options = {}
-    for i, block in ipairs(code_blocks) do
-      local preview = table.concat(block.content, "\n"):sub(1, 50)
-      if #preview == 50 then
-        preview = preview .. "..."
-      end
-      table.insert(options, string.format("%d: %s (%s)", i, preview, block.lang))
-    end
-    vim.ui.select(options, {
-      prompt = "Select code block to inject:",
-      format_item = function(item)
-        return item
-      end,
-    }, function(choice, idx)
-      if idx then
-        selected_block = code_blocks[idx]
-      end
-    end)
-  else
-    selected_block = code_blocks[1]
+-- Select code block to inject (now with callback support)
+function M.select_code_block(code_blocks, callback)
+  if #code_blocks == 0 then
+    callback(nil)
+    return
   end
 
-  return selected_block
+  if #code_blocks == 1 then
+    callback(code_blocks[1])
+    return
+  end
+
+  -- Multiple blocks - show selection UI with better preview
+  local options = {}
+  for i, block in ipairs(code_blocks) do
+    -- Create a better preview - show first few lines
+    local preview_lines = {}
+    for j = 1, math.min(3, #block.content) do
+      table.insert(preview_lines, block.content[j])
+    end
+    local preview = table.concat(preview_lines, " | ")
+    if #block.content > 3 then
+      preview = preview .. " | ..."
+    end
+    -- Limit total length
+    if #preview > 80 then
+      preview = preview:sub(1, 77) .. "..."
+    end
+    table.insert(options, string.format("Block %d (%s): %s", i, block.lang, preview))
+  end
+
+  vim.ui.select(options, {
+    prompt = "Select code block to inject:",
+    format_item = function(item)
+      return item
+    end,
+  }, function(choice, idx)
+    if idx then
+      callback(code_blocks[idx])
+    else
+      callback(nil)  -- User cancelled selection
+    end
+  end)
 end
 
 -- open target file
@@ -146,11 +222,32 @@ function M.open_target_file(target_bufnr, target_file)
 end
 
 -- Insert and format code
-function M.insert_and_format_code(code_lines)
-  local cursor_pos = vim.api.nvim_win_get_cursor(0)
-  local row = cursor_pos[1] - 1
-  vim.api.nvim_buf_set_lines(0, row, row, false, code_lines)
-  require("conform").format({ formatters = { "injected" } })
+function M.insert_and_format_code(code_lines, target_bufnr)
+  -- Use provided target buffer or current buffer
+  local bufnr = target_bufnr or vim.api.nvim_get_current_buf()
+
+  -- Get cursor position from the target buffer's window
+  local target_win = vim.fn.bufwinid(bufnr)
+  local row
+  if target_win ~= -1 then
+    row = vim.api.nvim_win_get_cursor(target_win)[1]
+  else
+    row = 1 -- Default to first line if window not found
+  end
+
+  -- Try to use inline suggestions first
+  local inline = require("m_augment.inline")
+  if inline.inject_as_suggestion(bufnr, row, code_lines) then
+    return -- Handled by inline suggestions
+  end
+
+  -- Fallback to direct injection
+  vim.api.nvim_buf_set_lines(bufnr, row - 1, row - 1, false, code_lines)
+
+  -- Format only if the buffer is modifiable
+  if vim.api.nvim_buf_get_option(bufnr, "modifiable") then
+    require("conform").format({ formatters = { "injected" } })
+  end
 end
 
 -- inject selected code

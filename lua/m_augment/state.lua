@@ -1,5 +1,25 @@
+---@class ResponseInfo
+---@field bufnr integer|nil Buffer number of the response
+---@field winid integer|nil Window ID of the response
+---@field filetype string|nil File type of the response
+---@field last_updated integer|nil Timestamp of last update
+
+---@class RecentBuffers
+---@field max_size integer Maximum number of recent buffers to track
+---@field items table[] List of recent buffer items
+
+---@class RecentCodeBlocks
+---@field max_size integer Maximum number of code blocks to track
+---@field items table[] List of recent code block items
+
+---@class StateConfig
+---@field workspace_path string Path to workspaces configuration file
+---@field max_recent_buffers integer Maximum recent buffers to track
+---@field max_code_blocks integer Maximum code blocks to track
+
 local M = {}
 
+---@type ResponseInfo
 M.response_info = {
   bufnr = nil,
   winid = nil,
@@ -7,30 +27,39 @@ M.response_info = {
   last_updated = nil,
 }
 
+---@type RecentBuffers
 M.recent_buffers = {
   max_size = 4,
   items = {},
 }
 
+---@type RecentCodeBlocks
 M.recent_code_blocks = {
   max_size = 10,
   items = {},
 }
 
+---@type StateConfig
 M.config = {
   workspace_path = "~/.augment/workspaces.json",
   max_recent_buffers = 4,
   max_code_blocks = 10,
 }
 
+---@type table Buffer content storage
 M.buffer_content = {}
+---@type string[] Message history
 M.message_history = {}
+---@type integer History index for navigation
 M.history_index = 0
 
+---@type integer|nil Source buffer number
 M.source_bufnr = nil
+---@type string|nil Source file path
 M.source_file = nil
 
--- Initialize state
+---Initialize state with configuration options
+---@param opts table|nil Configuration options
 function M.init(opts)
   opts = opts or {}
   M.config.workspace_path = opts.workspace_path or M.config.workspace_path
@@ -48,17 +77,21 @@ function M.init(opts)
   end
 end
 
--- Get source buffer
+---Get the source buffer number
+---@return integer|nil bufnr Source buffer number
 function M.get_source_buffer()
   return M.source_bufnr
 end
 
--- Get source file
+---Get the source file path
+---@return string|nil file Source file path
 function M.get_source_file()
   return M.source_file
 end
 
--- Set source buffer and size
+---Set source buffer and file
+---@param bufnr integer Buffer number
+---@param file string File path
 function M.set_source(bufnr, file)
   M.source_bufnr = bufnr
   M.source_file = file
