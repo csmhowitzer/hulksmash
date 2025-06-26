@@ -102,6 +102,18 @@ ls -la ~/.local/share/nvim/mason/bin/roslyn*
 
 **Goal**: Get roslyn.nvim decompilation navigation working on WSL2 to match macOS functionality.
 
+### **Health Check Available:**
+```vim
+:checkhealth wsl2_roslyn
+```
+Comprehensive diagnostics for WSL2 Roslyn setup including:
+- WSL2 environment detection
+- wslpath functionality testing
+- Roslyn LSP configuration
+- WSL2 fix implementation status
+- Diagnostic tools availability
+- File system permissions
+
 ---
 
 ## 🎯 **SOLUTION IMPLEMENTED** (2025-06-26)
