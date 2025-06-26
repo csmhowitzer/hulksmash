@@ -1,6 +1,7 @@
 ---@diagnostic disable: missing-fields
 
--- Helper function to detect WSL2 environment
+---Detect if we're running in WSL2 environment
+---@return boolean is_wsl2 True if running in WSL2, false otherwise
 local function is_wsl2()
   local handle = io.popen("uname -r")
   if handle then
@@ -11,7 +12,8 @@ local function is_wsl2()
   return false
 end
 
--- Helper function to convert WSL2 paths for Roslyn LSP
+---Generate Roslyn LSP configuration with WSL2-specific enhancements
+---@return table config Complete Roslyn LSP configuration object
 local function get_roslyn_config()
   local config = {
     settings = {

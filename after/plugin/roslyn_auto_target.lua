@@ -1,7 +1,8 @@
 -- Auto-retarget Roslyn when opening C# files to fix decompilation navigation issues
 -- Enhanced for WSL2 environments with Windows project paths
 
--- Helper function to detect WSL2 environment
+---Detect if we're running in WSL2 environment
+---@return boolean is_wsl2 True if running in WSL2, false otherwise
 local function is_wsl2()
   local handle = io.popen("uname -r 2>/dev/null")
   if handle then
@@ -12,7 +13,8 @@ local function is_wsl2()
   return false
 end
 
--- Check if wslpath is available (for WSL2 environments)
+---Check if wslpath utility is available (required for WSL2 environments)
+---@return boolean available True if wslpath is available or not needed, false if missing
 local function check_wslpath_available()
   if not is_wsl2() then
     return true -- Not needed in non-WSL2 environments
@@ -27,7 +29,9 @@ local function check_wslpath_available()
   return false
 end
 
--- Helper function to check if path is on Windows mount
+---Check if the given path is located on a Windows mount point
+---@param path string File path to check
+---@return boolean is_windows True if path is on Windows mount (/mnt/[drive]/), false otherwise
 local function is_windows_project(path)
   return path:match("^/mnt/[a-zA-Z]/") ~= nil
 end

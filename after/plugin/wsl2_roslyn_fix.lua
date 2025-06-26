@@ -3,7 +3,8 @@
 
 local M = {}
 
--- Check if wslpath utility is available
+---Check if wslpath utility is available in the system PATH
+---@return boolean available True if wslpath command is found and executable
 local function check_wslpath_available()
   local handle = io.popen("which wslpath 2>/dev/null")
   if handle then
@@ -14,7 +15,8 @@ local function check_wslpath_available()
   return false
 end
 
--- Detect if we're running in WSL2 and validate dependencies
+---Detect if we're running in WSL2 environment
+---@return boolean is_wsl2 True if running in WSL2, false otherwise
 local function is_wsl2()
   local handle = io.popen("uname -r 2>/dev/null")
   if handle then
@@ -25,7 +27,8 @@ local function is_wsl2()
   return false
 end
 
--- Validate WSL2 environment and dependencies
+---Validate WSL2 environment and check for required dependencies
+---@return boolean valid True if environment is valid or not WSL2, false if dependencies missing
 local function validate_wsl2_environment()
   if not is_wsl2() then
     return true -- Not WSL2, no validation needed
@@ -50,7 +53,9 @@ local function is_windows_path(path)
   return path:match("^/mnt/[a-zA-Z]/") ~= nil
 end
 
--- Convert Windows paths to WSL paths using wslpath
+---Convert Windows-style paths to WSL paths using wslpath utility
+---@param path string The file path to convert (Windows or WSL format)
+---@return string converted_path The converted WSL path, or original path if conversion fails/not needed
 local function convert_windows_path_to_wsl(path)
   -- Check if this looks like a Windows path
   if path:match("^[A-Za-z]:\\") or path:match("\\") then
@@ -83,7 +88,9 @@ local function convert_windows_path_to_wsl(path)
   return path
 end
 
--- Enhanced file opening for decompiled sources with path translation
+---Enhanced file opening for decompiled sources with path translation
+---@param uri string LSP URI pointing to the file to open
+---@return boolean success True if decompiled file was successfully opened, false otherwise
 local function open_decompiled_file(uri)
   local path = vim.uri_to_fname(uri)
 
@@ -138,7 +145,11 @@ local function open_decompiled_file(uri)
   return false
 end
 
--- Custom LSP handler for textDocument/definition that handles WSL2 paths
+---Custom LSP handler for textDocument/definition that handles WSL2 paths
+---@param err table|nil LSP error object if request failed
+---@param result table|table[]|nil LSP definition result(s)
+---@param ctx table LSP request context
+---@param config table LSP handler configuration
 local function enhanced_definition_handler(err, result, ctx, config)
   if err then
     vim.notify("LSP definition error: " .. tostring(err), vim.log.levels.ERROR)
@@ -195,7 +206,8 @@ local function enhanced_definition_handler(err, result, ctx, config)
   vim.lsp.handlers["textDocument/definition"](err, result, ctx, config)
 end
 
--- Setup function to be called when LSP attaches
+---Setup WSL2-specific fixes for Roslyn LSP
+---Configures enhanced LSP handlers and autocmds for cross-filesystem navigation
 local function setup_wsl2_fixes()
   if not is_wsl2() then
     return
@@ -263,5 +275,13 @@ end
 
 -- Auto-setup when this file is loaded
 setup_wsl2_fixes()
+
+-- Expose local functions for testing
+M._check_wslpath_available = check_wslpath_available
+M._is_wsl2 = is_wsl2
+M._validate_wsl2_environment = validate_wsl2_environment
+M._convert_windows_path_to_wsl = convert_windows_path_to_wsl
+M._open_decompiled_file = open_decompiled_file
+M._enhanced_definition_handler = enhanced_definition_handler
 
 return M

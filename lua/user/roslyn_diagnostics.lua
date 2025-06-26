@@ -3,7 +3,8 @@
 
 local M = {}
 
--- Helper function to detect WSL2
+---Detect if we're running in WSL2 environment
+---@return boolean is_wsl2 True if running in WSL2, false otherwise
 local function is_wsl2()
   local handle = io.popen("uname -r 2>/dev/null")
   if handle then
@@ -14,14 +15,15 @@ local function is_wsl2()
   return false
 end
 
--- Check decompiled file accessibility
+---Check accessibility of decompiled files in common temp directories
+---Searches for MetadataAsSource directories and lists sample C# files
 local function check_decompiled_files()
   local temp_dirs = {
     "/tmp/MetadataAsSource",
     "/var/tmp/MetadataAsSource",
     vim.fn.expand("~/.cache/MetadataAsSource"),
   }
-  
+
   print("=== Decompiled Files Check ===")
   for _, dir in ipairs(temp_dirs) do
     local stat = vim.loop.fs_stat(dir)
@@ -45,19 +47,20 @@ local function check_decompiled_files()
   end
 end
 
--- Check LSP status
+---Check status of active LSP clients, specifically looking for Roslyn
+---Displays client information and workspace configuration
 local function check_lsp_status()
   print("\n=== LSP Status ===")
   local clients = vim.lsp.get_active_clients()
   local roslyn_client = nil
-  
+
   for _, client in ipairs(clients) do
     if client.name == "roslyn" then
       roslyn_client = client
       break
     end
   end
-  
+
   if roslyn_client then
     print("✓ Roslyn LSP is active")
     print("  Client ID: " .. roslyn_client.id)
@@ -103,7 +106,8 @@ local function check_current_file()
   end
 end
 
--- Check wslpath availability
+---Check if wslpath utility is available and functional
+---@return boolean available True if wslpath is available or not needed, false if missing in WSL2
 local function check_wslpath_availability()
   print("\n=== wslpath Dependency Check ===")
   if not is_wsl2() then
@@ -173,10 +177,11 @@ local function test_navigation()
   print("4. If it fails, run :lua require('user.roslyn_diagnostics').debug_last_navigation()")
 end
 
--- Debug last navigation attempt
+---Debug the last navigation attempt by checking LSP capabilities and decompiled files
+---Provides detailed information about Roslyn LSP state and recent decompilation activity
 function M.debug_last_navigation()
   print("\n=== Navigation Debug ===")
-  
+
   -- Check recent LSP requests
   local clients = vim.lsp.get_active_clients()
   for _, client in ipairs(clients) do
@@ -187,12 +192,13 @@ function M.debug_last_navigation()
       break
     end
   end
-  
+
   -- Check for recent decompiled files
   check_decompiled_files()
 end
 
--- Main diagnostic function
+---Run comprehensive diagnostics for Roslyn LSP in WSL2 environments
+---Checks environment, LSP status, decompiled files, dependencies, and path conversion
 function M.run_diagnostics()
   print("=== Roslyn LSP Diagnostics for WSL2 ===")
   print("Environment: " .. (is_wsl2() and "WSL2" or "Native Linux"))
@@ -224,5 +230,13 @@ end, { desc = "Run Roslyn LSP diagnostics" })
 vim.keymap.set("n", "<leader>ard", function()
   M.run_diagnostics()
 end, { desc = "[A]ugment [R]oslyn [D]iagnostics" })
+
+-- Expose local functions for testing
+M._is_wsl2 = is_wsl2
+M._check_decompiled_files = check_decompiled_files
+M._check_lsp_status = check_lsp_status
+M._check_current_file = check_current_file
+M._check_wslpath_availability = check_wslpath_availability
+M._test_path_conversion = test_path_conversion
 
 return M
