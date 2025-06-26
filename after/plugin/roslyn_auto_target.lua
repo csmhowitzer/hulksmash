@@ -12,6 +12,21 @@ local function is_wsl2()
   return false
 end
 
+-- Check if wslpath is available (for WSL2 environments)
+local function check_wslpath_available()
+  if not is_wsl2() then
+    return true -- Not needed in non-WSL2 environments
+  end
+
+  local handle = io.popen("which wslpath 2>/dev/null")
+  if handle then
+    local result = handle:read("*a")
+    handle:close()
+    return result ~= ""
+  end
+  return false
+end
+
 -- Helper function to check if path is on Windows mount
 local function is_windows_project(path)
   return path:match("^/mnt/[a-zA-Z]/") ~= nil
@@ -36,6 +51,15 @@ vim.api.nvim_create_autocmd("FileType", {
     local delay = is_wsl2() and 1000 or 500
 
     vim.defer_fn(function()
+      -- Check WSL2 dependencies before proceeding
+      if is_wsl2() and not check_wslpath_available() then
+        vim.notify(
+          "WSL2 detected but wslpath not available - some Roslyn features may not work properly",
+          vim.log.levels.WARN,
+          { title = "Roslyn Auto-Target" }
+        )
+      end
+
       local roslyn = require("roslyn")
       if roslyn and roslyn.get_targets then
         local targets = roslyn.get_targets()

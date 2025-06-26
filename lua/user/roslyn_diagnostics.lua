@@ -103,11 +103,43 @@ local function check_current_file()
   end
 end
 
+-- Check wslpath availability
+local function check_wslpath_availability()
+  print("\n=== wslpath Dependency Check ===")
+  if not is_wsl2() then
+    print("Not in WSL2 environment - wslpath not needed")
+    return true
+  end
+
+  local handle = io.popen("which wslpath 2>/dev/null")
+  if handle then
+    local result = handle:read("*a")
+    handle:close()
+    if result ~= "" then
+      print("✓ wslpath is available: " .. result:gsub("\n$", ""))
+      return true
+    else
+      print("✗ wslpath not found in PATH")
+      print("  This is required for WSL2 path conversion!")
+      print("  Please ensure WSL2 is properly configured.")
+      return false
+    end
+  end
+
+  print("✗ Unable to check wslpath availability")
+  return false
+end
+
 -- Test path conversion functionality
 local function test_path_conversion()
   print("\n=== Path Conversion Test ===")
   if not is_wsl2() then
     print("Not in WSL2 environment")
+    return
+  end
+
+  if not check_wslpath_availability() then
+    print("Cannot test path conversion - wslpath not available")
     return
   end
 
@@ -168,6 +200,7 @@ function M.run_diagnostics()
   check_current_file()
   check_lsp_status()
   check_decompiled_files()
+  check_wslpath_availability()
   test_path_conversion()
   test_navigation()
 
@@ -176,9 +209,10 @@ function M.run_diagnostics()
   print("1. Ensure you're using 'gd' on external library types")
   print("2. Check that Roslyn LSP is active and attached")
   print("3. Verify decompiled files are being created in /tmp/MetadataAsSource")
-  print("4. Try restarting LSP with :LspRestart")
-  print("5. Check for path permission issues in WSL2")
-  print("6. Test path conversion with :TestWSLPath")
+  print("4. Ensure wslpath utility is available (WSL2 only)")
+  print("5. Try restarting LSP with :LspRestart")
+  print("6. Check for path permission issues in WSL2")
+  print("7. Test path conversion with :TestWSLPath")
 end
 
 -- Create user command

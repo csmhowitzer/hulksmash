@@ -3,7 +3,18 @@
 
 local M = {}
 
--- Detect if we're running in WSL2
+-- Check if wslpath utility is available
+local function check_wslpath_available()
+  local handle = io.popen("which wslpath 2>/dev/null")
+  if handle then
+    local result = handle:read("*a")
+    handle:close()
+    return result ~= ""
+  end
+  return false
+end
+
+-- Detect if we're running in WSL2 and validate dependencies
 local function is_wsl2()
   local handle = io.popen("uname -r 2>/dev/null")
   if handle then
@@ -12,6 +23,26 @@ local function is_wsl2()
     return result:match("microsoft") ~= nil or result:match("WSL") ~= nil
   end
   return false
+end
+
+-- Validate WSL2 environment and dependencies
+local function validate_wsl2_environment()
+  if not is_wsl2() then
+    return true -- Not WSL2, no validation needed
+  end
+
+  if not check_wslpath_available() then
+    vim.notify(
+      "WSL2 Roslyn Fix: wslpath utility not found!\n" ..
+      "Path conversion will not work properly.\n" ..
+      "Please ensure WSL2 is properly configured with wslpath support.",
+      vim.log.levels.ERROR,
+      { title = "WSL2 Dependency Missing" }
+    )
+    return false
+  end
+
+  return true
 end
 
 -- Check if a path is a Windows mount point
@@ -23,12 +54,29 @@ end
 local function convert_windows_path_to_wsl(path)
   -- Check if this looks like a Windows path
   if path:match("^[A-Za-z]:\\") or path:match("\\") then
+    -- Verify wslpath is available before using it
+    if not check_wslpath_available() then
+      vim.notify(
+        "Cannot convert Windows path: wslpath utility not available\n" ..
+        "Path: " .. path,
+        vim.log.levels.WARN,
+        { title = "WSL2 Path Conversion Failed" }
+      )
+      return path
+    end
+
     local handle = io.popen("wslpath -u '" .. path:gsub("'", "'\"'\"'") .. "' 2>/dev/null")
     if handle then
       local wsl_path = handle:read("*a"):gsub("\n$", "")
       handle:close()
       if wsl_path and wsl_path ~= "" then
         return wsl_path
+      else
+        vim.notify(
+          "wslpath conversion failed for: " .. path,
+          vim.log.levels.WARN,
+          { title = "WSL2 Path Conversion" }
+        )
       end
     end
   end
@@ -153,6 +201,16 @@ local function setup_wsl2_fixes()
     return
   end
 
+  -- Validate WSL2 environment and dependencies
+  if not validate_wsl2_environment() then
+    vim.notify(
+      "WSL2 Roslyn fixes disabled due to missing dependencies",
+      vim.log.levels.WARN,
+      { title = "WSL2 Setup" }
+    )
+    return
+  end
+
   -- Override the definition handler for better WSL2 support
   vim.lsp.handlers["textDocument/definition"] = enhanced_definition_handler
   
@@ -183,7 +241,7 @@ local function setup_wsl2_fixes()
     end,
   })
 
-  vim.notify("WSL2 Roslyn fixes loaded", vim.log.levels.INFO)
+  vim.notify("WSL2 Roslyn fixes loaded successfully (wslpath available)", vim.log.levels.INFO)
 
   -- Add test command for path conversion
   vim.api.nvim_create_user_command("TestWSLPath", function(opts)
