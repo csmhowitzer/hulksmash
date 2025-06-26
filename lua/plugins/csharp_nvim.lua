@@ -35,7 +35,7 @@ return {
           -- Sets if you want to use roslyn as your LSP
           roslyn = {
             -- When set to true, csharp.nvim will launch roslyn automatically.
-            enable = true,
+            enable = true, -- Re-enabled: works fine on macOS
             -- Path to the roslyn LSP see 'Roslyn LSP Specific Prerequisites' above.
             cmd_path = nil,
           },

@@ -2,6 +2,7 @@
 return {
   {
     "seblyng/roslyn.nvim",
+    enabled = true, -- Re-enabled: works fine on macOS, issue is WSL2-specific
     ft = "cs",
     ---@module 'roslyn.config'
     ---@type RoslynNvimConfig
