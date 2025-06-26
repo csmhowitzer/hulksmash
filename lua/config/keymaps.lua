@@ -81,3 +81,5 @@ vim.keymap.set("n", "<S-h>", "<C-w>h", { desc = "Go to Left Window" })
 vim.keymap.set("n", "<S-j>", "<C-w>j", { desc = "Go to Lower Window" })
 vim.keymap.set("n", "<S-k>", "<C-w>k", { desc = "Go to Upper Window" })
 vim.keymap.set("n", "<S-l>", "<C-w>l", { desc = "Go to Right Window" })
+
+vim.keymap.set("n", "<leader>pbf", "<CMD>PlenaryBustedFile %<CR>", { desc = "[P]lenary [B]usted [F]ile" })

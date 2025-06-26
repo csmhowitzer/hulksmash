@@ -167,7 +167,7 @@ function M.add_code_block(language, content)
   })
 
   if #M.recent_code_blocks.items > M.recent_code_blocks.max_size then
-    table.remove(M.recent_code_blocks.items, M.recent_code_blocks.max_size)
+    table.remove(M.recent_code_blocks.items)
   end
 end
 

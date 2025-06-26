@@ -1,6 +1,5 @@
 local M = {}
 local state = require("m_augment.state")
-local d2 = require("conform.formatters.d2")
 
 function M.setup(opts)
   M.define_highlights()
