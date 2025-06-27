@@ -142,16 +142,111 @@ local function check_roslyn_lsp()
   return true
 end
 
+---Check .NET environment configuration for WSL2
+local function check_dotnet_environment()
+  vim.health.start("WSL2 .NET Environment")
+
+  -- Check current .NET runtime ID
+  local runtime_id = vim.env.DOTNET_RUNTIME_ID
+  if runtime_id then
+    vim.health.ok("DOTNET_RUNTIME_ID set to: " .. runtime_id)
+
+    -- Validate runtime ID for WSL2
+    if runtime_id == "win-x64" then
+      vim.health.ok("Using Windows runtime (recommended for Windows projects in WSL2)")
+    elseif runtime_id == "linux-x64" then
+      vim.health.ok("Using Linux runtime (recommended for native WSL2 projects)")
+    else
+      vim.health.warn("Unexpected runtime ID: " .. runtime_id)
+    end
+  else
+    vim.health.info("DOTNET_RUNTIME_ID not set (will use .NET default detection)")
+  end
+
+  -- Check NuGet configuration
+  local nuget_packages = vim.env.NUGET_PACKAGES
+  if nuget_packages then
+    vim.health.ok("NUGET_PACKAGES set to: " .. nuget_packages)
+
+    -- Check if the directory exists
+    local stat = vim.loop.fs_stat(nuget_packages)
+    if stat and stat.type == "directory" then
+      vim.health.ok("NuGet packages directory exists and is accessible")
+    else
+      vim.health.warn("NuGet packages directory does not exist: " .. nuget_packages)
+    end
+  else
+    vim.health.info("NUGET_PACKAGES not set (will use .NET default)")
+  end
+
+  -- Check fallback packages setting
+  local fallback_packages = vim.env.NUGET_FALLBACK_PACKAGES
+  if fallback_packages == "" then
+    vim.health.ok("NUGET_FALLBACK_PACKAGES cleared (prevents Windows path issues)")
+  elseif fallback_packages then
+    vim.health.warn("NUGET_FALLBACK_PACKAGES set to: " .. fallback_packages)
+  else
+    vim.health.info("NUGET_FALLBACK_PACKAGES not set")
+  end
+
+  -- Check signature verification setting
+  local sig_verification = vim.env.DOTNET_NUGET_SIGNATURE_VERIFICATION
+  if sig_verification == "false" then
+    vim.health.ok("NuGet signature verification disabled (recommended for WSL2)")
+  else
+    vim.health.info("NuGet signature verification: " .. tostring(sig_verification))
+  end
+
+  return true
+end
+
+---Check project location and runtime detection
+local function check_project_detection()
+  vim.health.start("WSL2 Project Detection")
+
+  -- Get current working directory
+  local cwd = vim.fn.getcwd()
+  vim.health.info("Current working directory: " .. cwd)
+
+  -- Check if it's a Windows project
+  local is_windows_project = cwd:match("^/mnt/[a-zA-Z]/") ~= nil
+  if is_windows_project then
+    vim.health.ok("Windows project detected (on mounted drive)")
+    vim.health.info("Recommended runtime: win-x64")
+  else
+    vim.health.ok("Native WSL2 project detected")
+    vim.health.info("Recommended runtime: linux-x64")
+  end
+
+  -- Check Roslyn LSP root if available
+  local clients = vim.lsp.get_active_clients({ name = "roslyn" })
+  if #clients > 0 then
+    for _, client in ipairs(clients) do
+      if client.config.root_dir then
+        vim.health.info("Roslyn LSP root: " .. client.config.root_dir)
+
+        local lsp_is_windows = client.config.root_dir:match("^/mnt/[a-zA-Z]/") ~= nil
+        if lsp_is_windows ~= is_windows_project then
+          vim.health.warn("LSP root and CWD have different project types")
+        end
+      end
+    end
+  end
+
+  return true
+end
+
 ---Check WSL2 Roslyn fix implementation
 local function check_wsl2_roslyn_fixes()
   vim.health.start("WSL2 Roslyn Fixes")
-  
+
   -- Check if WSL2 fix module is available (loaded via after/plugin)
   local wsl2_fix_ok, wsl2_fix = pcall(function()
     -- Try to access the global functions set by after/plugin/wsl2_roslyn_fix.lua
     return {
       _is_wsl2 = _G._wsl2_is_wsl2,
-      _convert_path = _G._wsl2_convert_path
+      _convert_path = _G._wsl2_convert_path,
+      _check_wslpath = _G._wsl2_check_wslpath
     }
   end)
   if wsl2_fix_ok and (wsl2_fix._is_wsl2 or wsl2_fix._convert_path) then
@@ -181,11 +276,21 @@ local function check_wsl2_roslyn_fixes()
     else
       vim.health.info("Path conversion function not available (may not be exposed)")
     end
+
+    -- Test wslpath availability
+    if wsl2_fix._check_wslpath then
+      local wslpath_available = wsl2_fix._check_wslpath()
+      if wslpath_available then
+        vim.health.ok("wslpath utility available via fix module")
+      else
+        vim.health.warn("wslpath utility not available via fix module")
+      end
+    end
   else
     vim.health.info("WSL2 Roslyn fix functions not available",
       "This is expected if after/plugin/wsl2_roslyn_fix.lua doesn't expose test functions")
   end
-  
+
   return true
 end
 
@@ -269,20 +374,28 @@ end
 function M.check()
   local is_wsl2 = check_wsl2_compatibility()
   check_roslyn_lsp()
-  
+
   if is_wsl2 then
+    check_dotnet_environment()
+    check_project_detection()
     check_wsl2_roslyn_fixes()
     check_filesystem()
   end
-  
+
   check_diagnostic_tools()
-  
+
   -- Final summary
   vim.health.start("WSL2 Roslyn Summary")
   if is_wsl2 then
     vim.health.info("WSL2 environment detected - all WSL2-specific checks completed")
     vim.health.info("Run ':RoslynDiagnostics' for detailed runtime diagnostics")
     vim.health.info("Use ':TestWSLPath <path>' to test path conversion")
+
+    -- Provide specific recommendations based on environment
+    local runtime_id = vim.env.DOTNET_RUNTIME_ID
+    if not runtime_id then
+      vim.health.info("💡 Tip: Restart Neovim to apply .NET environment configuration")
+    end
   else
     vim.health.info("Non-WSL2 environment - WSL2-specific features disabled")
   end

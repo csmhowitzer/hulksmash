@@ -27,6 +27,66 @@ local function is_wsl2()
   return false
 end
 
+---Detect if project is on Windows filesystem in WSL2
+---@param project_path string Path to check
+---@return boolean is_windows_project True if project is on mounted Windows drive
+local function is_windows_project_in_wsl2(project_path)
+  if not is_wsl2() then
+    return false
+  end
+
+  -- Check if path starts with /mnt/c/, /mnt/d/, etc.
+  return project_path:match("^/mnt/[a-zA-Z]/") ~= nil
+end
+
+---Determine appropriate runtime ID based on project location
+---@return string|nil runtime_id The runtime ID to use, or nil to let .NET decide
+local function detect_appropriate_runtime()
+  if not is_wsl2() then
+    return nil -- Let .NET decide on non-WSL2 systems
+  end
+
+  -- Get current working directory or LSP root
+  local cwd = vim.fn.getcwd()
+  local lsp_clients = vim.lsp.get_active_clients()
+
+  -- Prefer Roslyn LSP root directory if available
+  for _, client in ipairs(lsp_clients) do
+    if client.name == "roslyn" and client.config.root_dir then
+      cwd = client.config.root_dir
+      break
+    end
+  end
+
+  if is_windows_project_in_wsl2(cwd) then
+    return "win-x64"  -- Windows project in WSL2
+  else
+    return "linux-x64"  -- Native WSL2 project
+  end
+end
+
+---Set WSL2-specific environment variables for .NET/NuGet compatibility
+---Forces appropriate runtime behavior to avoid package dependency issues
+local function setup_wsl2_dotnet_env()
+  if not is_wsl2() then
+    return -- Only apply in WSL2 environment
+  end
+
+  local runtime_id = detect_appropriate_runtime()
+  if runtime_id then
+    vim.env.DOTNET_RUNTIME_ID = runtime_id
+    vim.env.NUGET_PACKAGES = "/home/" .. (vim.env.USER or "user") .. "/.nuget/packages"
+    vim.env.NUGET_FALLBACK_PACKAGES = ""
+    vim.env.DOTNET_NUGET_SIGNATURE_VERIFICATION = "false"
+
+    -- Notify about environment setup
+    vim.notify(
+      string.format("WSL2 .NET environment configured with runtime: %s", runtime_id),
+      vim.log.levels.INFO
+    )
+  end
+end
+
 ---Validate WSL2 environment and check for required dependencies
 ---@return boolean valid True if environment is valid or not WSL2, false if dependencies missing
 local function validate_wsl2_environment()
@@ -223,6 +283,9 @@ local function setup_wsl2_fixes()
     return
   end
 
+  -- Setup .NET environment for WSL2 compatibility
+  setup_wsl2_dotnet_env()
+
   -- Override the definition handler for better WSL2 support
   vim.lsp.handlers["textDocument/definition"] = enhanced_definition_handler
   
@@ -283,5 +346,13 @@ M._validate_wsl2_environment = validate_wsl2_environment
 M._convert_windows_path_to_wsl = convert_windows_path_to_wsl
 M._open_decompiled_file = open_decompiled_file
 M._enhanced_definition_handler = enhanced_definition_handler
+M._is_windows_project_in_wsl2 = is_windows_project_in_wsl2
+M._detect_appropriate_runtime = detect_appropriate_runtime
+M._setup_wsl2_dotnet_env = setup_wsl2_dotnet_env
+
+-- Expose functions globally for health check
+_G._wsl2_is_wsl2 = is_wsl2
+_G._wsl2_convert_path = convert_windows_path_to_wsl
+_G._wsl2_check_wslpath = check_wslpath_available
 
 return M
