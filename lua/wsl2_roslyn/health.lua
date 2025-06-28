@@ -370,10 +370,76 @@ local function check_filesystem()
   end
 end
 
+---Check smart notification utility integration
+---@return nil
+local function check_smart_notify_integration()
+  vim.health.start("Smart Notification System")
+
+  -- Check if smart_notify utility is available
+  local ok, smart_notify = pcall(require, 'utils.smart_notify')
+  if not ok then
+    vim.health.error("Smart notification utility not found", {
+      "Expected: lua/utils/smart_notify.lua",
+      "This utility provides context-aware notifications"
+    })
+    return
+  end
+
+  vim.health.ok("Smart notification utility loaded successfully")
+
+  -- Check .NET configuration
+  if smart_notify.dotnet_config then
+    vim.health.ok("Dotnet notification configuration available")
+
+    -- Check debug variable
+    local debug_var = smart_notify.dotnet_config.debug_var
+    if debug_var == "wsl2_roslyn_debug" then
+      vim.health.ok("Correct debug variable configured: " .. debug_var)
+    else
+      vim.health.warn("Unexpected debug variable: " .. tostring(debug_var))
+    end
+
+    -- Check project patterns
+    local patterns = smart_notify.dotnet_config.project_patterns
+    if patterns and #patterns > 0 then
+      vim.health.ok("Project patterns configured: " .. table.concat(patterns, ", "))
+    else
+      vim.health.warn("No project patterns configured")
+    end
+  else
+    vim.health.error("Dotnet notification configuration missing")
+  end
+
+  -- Check if dotnet notifier function exists
+  if type(smart_notify.dotnet) == "function" then
+    vim.health.ok("Dotnet notifier function available")
+  else
+    vim.health.error("Dotnet notifier function missing")
+  end
+
+  -- Check debug command creation
+  if type(smart_notify.create_debug_command) == "function" then
+    vim.health.ok("Debug command creation function available")
+
+    -- Check if WSL2RoslynDebug command exists
+    local commands = vim.api.nvim_get_commands({})
+    if commands.WSL2RoslynDebug then
+      vim.health.ok("WSL2RoslynDebug command is available")
+    else
+      vim.health.warn("WSL2RoslynDebug command not found", {
+        "Command should be created by after/plugin/wsl2_roslyn_fix.lua"
+      })
+    end
+  else
+    vim.health.error("Debug command creation function missing")
+  end
+end
+
 ---Main health check function
 function M.check()
   local is_wsl2 = check_wsl2_compatibility()
   check_roslyn_lsp()
+  check_smart_notify_integration()
 
   if is_wsl2 then
     check_dotnet_environment()

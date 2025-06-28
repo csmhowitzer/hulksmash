@@ -1,71 +1,22 @@
 -- WSL2-specific fixes for Roslyn LSP decompilation navigation
 -- This addresses the cross-filesystem boundary issues between Windows projects and WSL2
+--
+-- PERFORMANCE OPTIMIZATIONS APPLIED:
+-- - Smart notifications (context-aware, debug mode support)
+-- - Environment variable optimizations for faster .NET loading
+-- - Timing diagnostics for performance monitoring
+--
+-- FEATURES:
+-- - Cross-filesystem path translation with wslpath
+-- - Enhanced LSP definition handlers for decompiled sources
+-- - Automatic .NET environment configuration for WSL2
+-- - Performance timing and diagnostics
 
 local M = {}
 
----Check if current directory is inside a .NET solution or project
----@return boolean is_dotnet_project True if in a .NET project directory
-local function is_dotnet_project()
-  local cwd = vim.fn.getcwd()
-
-  -- Check for common .NET project files
-  local dotnet_files = {
-    "*.sln",      -- Solution files
-    "*.csproj",   -- C# project files
-    "*.fsproj",   -- F# project files
-    "*.vbproj",   -- VB.NET project files
-    "global.json" -- .NET global configuration
-  }
-
-  for _, pattern in ipairs(dotnet_files) do
-    local files = vim.fn.glob(cwd .. "/" .. pattern, false, true)
-    if #files > 0 then
-      return true
-    end
-  end
-
-  -- Check subdirectories for project files (one level deep)
-  local subdirs = vim.fn.glob(cwd .. "/*", false, true)
-  for _, subdir in ipairs(subdirs) do
-    if vim.fn.isdirectory(subdir) == 1 then
-      for _, pattern in ipairs(dotnet_files) do
-        local files = vim.fn.glob(subdir .. "/" .. pattern, false, true)
-        if #files > 0 then
-          return true
-        end
-      end
-    end
-  end
-
-  return false
-end
-
----Check if we should show informational notifications
----@return boolean should_notify True if notifications should be shown
-local function should_show_notifications()
-  -- Always show error notifications
-  -- Show info notifications only when:
-  -- 1. In debug mode (g:wsl2_roslyn_debug is set)
-  -- 2. In a .NET project directory
-  return vim.g.wsl2_roslyn_debug or is_dotnet_project()
-end
-
----Smart notification wrapper that respects user preferences
----@param message string Notification message
----@param level number Log level (vim.log.levels.*)
----@param opts table|nil Optional notification options
-local function smart_notify(message, level, opts)
-  -- Always show errors and warnings
-  if level == vim.log.levels.ERROR or level == vim.log.levels.WARN then
-    vim.notify(message, level, opts)
-    return
-  end
-
-  -- Show info/debug only when appropriate
-  if should_show_notifications() then
-    vim.notify(message, level, opts)
-  end
-end
+-- Use the smart notification utility for context-aware notifications
+local smart_notify_util = require('utils.smart_notify')
+local smart_notify = smart_notify_util.dotnet
 
 ---Check if wslpath utility is available in the system PATH
 ---@return boolean available True if wslpath command is found and executable
@@ -142,6 +93,16 @@ local function setup_wsl2_dotnet_env()
     vim.env.NUGET_PACKAGES = "/home/" .. (vim.env.USER or "user") .. "/.nuget/packages"
     vim.env.NUGET_FALLBACK_PACKAGES = ""
     vim.env.DOTNET_NUGET_SIGNATURE_VERIFICATION = "false"
+
+    -- NEW: Performance optimizations for faster project loading
+    vim.env.DOTNET_SKIP_FIRST_TIME_EXPERIENCE = "true" -- Skip .NET first-time setup
+    vim.env.DOTNET_CLI_TELEMETRY_OPTOUT = "true" -- Disable telemetry for speed
+    vim.env.MSBUILD_DISABLE_SHARED_BUILD_PROCESS_LANGUAGE_SERVICE = "1" -- Disable shared build process
+
+    -- NEW: WSL2 filesystem performance optimizations
+    vim.env.DOTNET_USE_POLLING_FILE_WATCHER = "true" -- Use polling instead of inotify for WSL2
+    vim.env.MSBUILD_CACHE_ENABLED = "true" -- Enable MSBuild caching
+    vim.env.DOTNET_ReadyToRun = "0" -- Disable ReadyToRun for faster startup
 
     -- Notify about environment setup (only when appropriate)
     smart_notify(
@@ -256,7 +217,7 @@ local function open_decompiled_file(uri)
       vim.bo.filetype = "cs"
       -- Add helpful buffer-local mappings
       vim.keymap.set("n", "q", "<cmd>bdelete<cr>", { buffer = true, desc = "Close decompiled source" })
-      vim.notify("Opened decompiled source: " .. vim.fn.fnamemodify(path, ":t"), vim.log.levels.INFO)
+      smart_notify("Opened decompiled source: " .. vim.fn.fnamemodify(path, ":t"), vim.log.levels.INFO)
       return true
     else
       vim.notify("Decompiled file not accessible: " .. path, vim.log.levels.WARN)
@@ -281,7 +242,7 @@ local function enhanced_definition_handler(err, result, ctx, config)
   end
 
   if not result or vim.tbl_isempty(result) then
-    vim.notify("No definition found", vim.log.levels.INFO)
+    smart_notify("No definition found", vim.log.levels.INFO)
     return
   end
 
@@ -388,8 +349,10 @@ local function setup_wsl2_fixes()
     nvim_start = vim.loop.hrtime()
   }
 
-  -- Track Neovim startup time
-  vim.notify("⏱️ Neovim started, waiting for Roslyn LSP...", vim.log.levels.INFO)
+  -- Track Neovim startup time (only in debug mode)
+  if vim.g.wsl2_roslyn_debug then
+    vim.notify("⏱️ Neovim started, waiting for Roslyn LSP...", vim.log.levels.INFO)
+  end
 
   -- Track when any LSP starts
   vim.api.nvim_create_autocmd("LspAttach", {
@@ -398,9 +361,15 @@ local function setup_wsl2_fixes()
       if client then
         local total_time = (vim.loop.hrtime() - roslyn_timing.nvim_start) / 1e9
         if client.name == "roslyn" then
-          vim.notify(string.format("🚀 Roslyn LSP attached in %.2f seconds from Neovim start", total_time), vim.log.levels.WARN)
+          -- Only show Roslyn timing in debug mode
+          if vim.g.wsl2_roslyn_debug then
+            vim.notify(string.format("🚀 Roslyn LSP attached in %.2f seconds from Neovim start", total_time), vim.log.levels.WARN)
+          end
         else
-          vim.notify(string.format("📡 %s LSP attached in %.2f seconds", client.name, total_time), vim.log.levels.INFO)
+          -- Only show other LSP timing in debug mode
+          if vim.g.wsl2_roslyn_debug then
+            vim.notify(string.format("📡 %s LSP attached in %.2f seconds", client.name, total_time), vim.log.levels.INFO)
+          end
         end
       end
     end,
@@ -412,34 +381,15 @@ local function setup_wsl2_fixes()
       local client = vim.lsp.get_client_by_id(args.data.client_id)
       if client and client.name == "roslyn" then
         local elapsed = (vim.loop.hrtime() - roslyn_timing.nvim_start) / 1e9
-        if args.data.value and args.data.value.message then
+        if args.data.value and args.data.value.message and vim.g.wsl2_roslyn_debug then
           vim.notify(string.format("⏳ Roslyn (%.1fs): %s", elapsed, args.data.value.message), vim.log.levels.INFO)
         end
       end
     end,
   })
 
-  -- Add debug mode toggle command
-  vim.api.nvim_create_user_command("WSL2RoslynDebug", function(opts)
-    local action = opts.args:lower()
-    if action == "on" or action == "enable" or action == "true" then
-      vim.g.wsl2_roslyn_debug = true
-      vim.notify("WSL2 Roslyn debug notifications enabled", vim.log.levels.INFO)
-    elseif action == "off" or action == "disable" or action == "false" then
-      vim.g.wsl2_roslyn_debug = false
-      vim.notify("WSL2 Roslyn debug notifications disabled", vim.log.levels.INFO)
-    else
-      local status = vim.g.wsl2_roslyn_debug and "enabled" or "disabled"
-      vim.notify("WSL2 Roslyn debug notifications: " .. status, vim.log.levels.INFO)
-      vim.notify("Usage: :WSL2RoslynDebug [on|off]", vim.log.levels.INFO)
-    end
-  end, {
-    nargs = "?",
-    desc = "Toggle WSL2 Roslyn debug notifications",
-    complete = function()
-      return { "on", "off", "enable", "disable", "true", "false" }
-    end,
-  })
+  -- Add debug mode toggle command using utility
+  smart_notify_util.create_debug_command("WSL2RoslynDebug", "wsl2_roslyn_debug", "WSL2 Roslyn")
 
   -- Add manual LSP timing check command
   vim.api.nvim_create_user_command("RoslynTiming", function()

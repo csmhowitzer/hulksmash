@@ -95,11 +95,14 @@ vim.api.nvim_create_autocmd("FileType", {
           local selected_target = sln_target or targets[1]
           roslyn.target(selected_target)
 
-          -- Enhanced notification for WSL2
+          -- Enhanced notification for WSL2 (only in debug mode or .NET projects)
           local env_info = is_wsl2() and " (WSL2)" or ""
-          vim.notify("Roslyn auto-retargeted to " .. selected_target .. env_info, vim.log.levels.INFO, {
-            title = "Roslyn Auto-Target",
-          })
+          -- Only notify if in debug mode or in a .NET project
+          if vim.g.wsl2_roslyn_debug or vim.fn.glob("*.sln") ~= "" or vim.fn.glob("*.csproj") ~= "" then
+            vim.notify("Roslyn auto-retargeted to " .. selected_target .. env_info, vim.log.levels.INFO, {
+              title = "Roslyn Auto-Target",
+            })
+          end
         else
           vim.notify("No Roslyn targets found", vim.log.levels.WARN, {
             title = "Roslyn Auto-Target",

@@ -188,5 +188,26 @@ describe("WSL2 .NET Environment Configuration", function()
                         scenario.debug_mode, scenario.in_dotnet_project))
       end
     end)
+
+    it("should integrate with smart_notify utility", function()
+      -- Test that WSL2 Roslyn fixes use the smart notification utility
+      local smart_notify = require('utils.smart_notify')
+
+      -- Verify the utility is available
+      assert(smart_notify, "Smart notify utility should be available")
+      assert(smart_notify.dotnet, "Dotnet notifier should be available")
+      assert(smart_notify.dotnet_config, "Dotnet config should be available")
+
+      -- Verify configuration
+      local config = smart_notify.dotnet_config
+      eq("wsl2_roslyn_debug", config.debug_var, "Should use correct debug variable")
+      eq(".NET", config.title, "Should have correct title")
+
+      -- Verify project patterns include .NET files
+      local patterns = config.project_patterns
+      assert(vim.tbl_contains(patterns, "*.sln"), "Should detect solution files")
+      assert(vim.tbl_contains(patterns, "*.csproj"), "Should detect C# project files")
+      assert(vim.tbl_contains(patterns, "global.json"), "Should detect global.json")
+    end)
   end)
 end)
