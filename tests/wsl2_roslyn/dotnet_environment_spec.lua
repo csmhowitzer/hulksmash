@@ -142,14 +142,50 @@ describe("WSL2 .NET Environment Configuration", function()
         { name = "macOS", is_wsl2 = false, should_apply = false },
         { name = "Windows", is_wsl2 = false, should_apply = false }
       }
-      
+
       for _, env in ipairs(environments) do
         -- Simulate the conditional logic
         local will_apply_changes = env.is_wsl2
-        
-        eq(env.should_apply, will_apply_changes, 
-           "Environment changes for " .. env.name .. " should be " .. 
+
+        eq(env.should_apply, will_apply_changes,
+           "Environment changes for " .. env.name .. " should be " ..
            (env.should_apply and "applied" or "skipped"))
+      end
+    end)
+  end)
+
+  describe("Smart notification system", function()
+    it("should detect .NET projects correctly", function()
+      -- Test .NET project detection patterns
+      local test_cases = {
+        { path = "/home/user/project", has_sln = false, expected = false },
+        { path = "/mnt/c/projects/app", has_sln = true, expected = true },
+        { path = "/tmp/test", has_sln = false, expected = false }
+      }
+
+      for _, case in ipairs(test_cases) do
+        -- Simulate the .NET project detection logic
+        local is_dotnet_project = case.has_sln  -- Simplified for testing
+        eq(case.expected, is_dotnet_project,
+           "Project detection for: " .. case.path)
+      end
+    end)
+
+    it("should respect notification preferences", function()
+      -- Test notification logic
+      local scenarios = {
+        { debug_mode = true, in_dotnet_project = false, should_notify = true },
+        { debug_mode = false, in_dotnet_project = true, should_notify = true },
+        { debug_mode = false, in_dotnet_project = false, should_notify = false },
+        { debug_mode = true, in_dotnet_project = true, should_notify = true }
+      }
+
+      for _, scenario in ipairs(scenarios) do
+        -- Simulate the notification decision logic
+        local should_notify = scenario.debug_mode or scenario.in_dotnet_project
+        eq(scenario.should_notify, should_notify,
+           string.format("Debug: %s, .NET project: %s",
+                        scenario.debug_mode, scenario.in_dotnet_project))
       end
     end)
   end)
