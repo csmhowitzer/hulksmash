@@ -10,6 +10,7 @@ vim.api.nvim_set_hl(0, "NeoTreeNormal", { bg = "none" })
 vim.api.nvim_set_hl(0, "NeoTreeNormalNC", { bg = "none" })
 vim.api.nvim_set_hl(0, "TelescopeNormal", { bg = "none" })
 vim.api.nvim_set_hl(0, "SignColumn", { fg = "#CB444A" }) -- a pinkish color
+vim.api.nvim_set_hl(0, "WinSeparator", { fg = "#638860" })
 
 -- You can configure highlights by doing something like
 vim.cmd.hi("Comment gui=italic")

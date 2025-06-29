@@ -17,6 +17,7 @@ return {
           { "<leader>g", group = "git" },
           { "<leader>gh", group = "hunks" },
           { "<leader>q", group = "Quickfix" },
+          { "<leader>i", group = "Treesitter [I]nspect" },
           { "<leader>p", group = "oil explorer", icon = { icon = "", color = "yellow" } },
           { "<leader>r", group = "lsp rename" },
           { "<leader>a", group = "augment ai" },
