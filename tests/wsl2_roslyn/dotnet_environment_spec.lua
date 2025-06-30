@@ -191,7 +191,7 @@ describe("WSL2 .NET Environment Configuration", function()
 
     it("should integrate with smart_notify utility", function()
       -- Test that WSL2 Roslyn fixes use the smart notification utility
-      local smart_notify = require('utils.smart_notify')
+      local smart_notify = require('lib.smart_notify')
 
       -- Verify the utility is available
       assert(smart_notify, "Smart notify utility should be available")

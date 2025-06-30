@@ -1,6 +1,6 @@
 local M = {}
 
-local utils = require("user.utils")
+local utils = require("lib.utils")
 local nuget_sources_path = "~/.config/nuget/sources.json"
 
 --- Reads the NuGet sources from the config file.

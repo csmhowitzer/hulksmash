@@ -174,7 +174,7 @@ local function test_navigation()
   print("1. Place cursor on a .NET library type (e.g., 'List', 'Console', 'Dictionary')")
   print("2. Press 'gd' or use LSP go-to-definition")
   print("3. Check if it opens a decompiled source file")
-  print("4. If it fails, run :lua require('user.roslyn_diagnostics').debug_last_navigation()")
+  print("4. If it fails, run :lua require('lib.roslyn_diagnostics').debug_last_navigation()")
 end
 
 ---Debug the last navigation attempt by checking LSP capabilities and decompiled files

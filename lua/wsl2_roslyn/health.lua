@@ -299,7 +299,7 @@ local function check_diagnostic_tools()
   vim.health.start("WSL2 Roslyn Diagnostic Tools")
   
   -- Check if diagnostic module is available
-  local diag_ok, diagnostics = pcall(require, "user.roslyn_diagnostics")
+  local diag_ok, diagnostics = pcall(require, "lib.roslyn_diagnostics")
   if diag_ok then
     vim.health.ok("Roslyn diagnostics module loaded")
     
@@ -376,7 +376,7 @@ local function check_smart_notify_integration()
   vim.health.start("Smart Notification System")
 
   -- Check if smart_notify utility is available
-  local ok, smart_notify = pcall(require, 'utils.smart_notify')
+  local ok, smart_notify = pcall(require, 'lib.smart_notify')
   if not ok then
     vim.health.error("Smart notification utility not found", {
       "Expected: lua/utils/smart_notify.lua",

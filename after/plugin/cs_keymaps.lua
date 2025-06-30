@@ -11,7 +11,7 @@ local addProjRefCmd = { "dotnet", "add", "reference", "[PROJECT_PATH]" }
 -- the current dotnet sdk
 --local rebuildSlnCmd = { 'dotnet', 'build', '--no-incremental' }
 
-local utils = require("user.utils")
+local utils = require("lib.utils")
 
 vim.notify = require("notify")
 
@@ -203,7 +203,7 @@ vim.api.nvim_create_autocmd({ "BufEnter", "FileType" }, {
   end,
 })
 
-local nuget_utils = require("user.cs_nuget_utils")
+local nuget_utils = require("lib.cs_nuget_utils")
 nuget_utils.setup()
 
 -- we want to create a new proto file

@@ -5,7 +5,7 @@ return {
     config = function()
       vim.g.augment_disable_completions = true
 
-      local utils = require("user.utils")
+      local utils = require("lib.utils")
       local workspace_path = "~/.augment/workspaces.json"
 
       -- Initialize the Augment modules

@@ -1,7 +1,7 @@
 -- Unit tests for smart notification utility
 -- Tests context-aware notification behavior and configuration
 
-local smart_notify = require('utils.smart_notify')
+local smart_notify = require('lib.smart_notify')
 
 describe("Smart Notification Utility", function()
   -- Store original values to restore after tests

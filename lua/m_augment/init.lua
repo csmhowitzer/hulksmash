@@ -3,7 +3,7 @@
 
 local M = {}
 
-local m_utils = require("user.utils")
+local m_utils = require("lib.utils")
 local state = require("m_augment.state")
 local utils = require("m_augment.utils")
 local ui = require("m_augment.ui")

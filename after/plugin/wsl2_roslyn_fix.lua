@@ -15,7 +15,7 @@
 local M = {}
 
 -- Use the smart notification utility for context-aware notifications
-local smart_notify_util = require('utils.smart_notify')
+local smart_notify_util = require('lib.smart_notify')
 local smart_notify = smart_notify_util.dotnet
 
 ---Check if wslpath utility is available in the system PATH

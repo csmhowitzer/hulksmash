@@ -1,7 +1,7 @@
 -- Smart Notify Usage Examples
 -- Demonstrates how to use the smart notification utility in different scenarios
 
-local smart_notify = require('utils.smart_notify')
+local smart_notify = require('lib.smart_notify')
 
 -- Example 1: Using predefined configurations
 local function example_predefined()

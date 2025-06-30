@@ -120,7 +120,7 @@ return {
     },
     config = function(_, opts)
       -- Load diagnostic tools when roslyn is loaded
-      require("user.roslyn_diagnostics")
+      require("lib.roslyn_diagnostics")
 
       -- Setup roslyn with the provided options
       require("roslyn").setup(opts)

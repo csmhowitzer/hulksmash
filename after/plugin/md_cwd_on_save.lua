@@ -1,6 +1,6 @@
 -- INFO: Auto-Switch cwd when entering a new file on BufEnter.
 
-local utils = require("user.utils")
+local utils = require("lib.utils")
 
 -- autocommand .md files
 vim.api.nvim_create_autocmd({ "BufEnter" }, {

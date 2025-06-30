@@ -2,7 +2,7 @@
 -- C#
 --    switch the cwd to the .sln root path
 
-local utils = require("user.utils")
+local utils = require("lib.utils")
 
 -- autocommand .cs files
 vim.api.nvim_create_autocmd({ "BufEnter" }, {

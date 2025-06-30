@@ -1,6 +1,6 @@
 local M = {}
 local state = require("m_augment.state")
-local utils = require("user.utils")
+local utils = require("lib.utils")
 
 function M.read_file_content(path)
   local file = io.open(path, "r")
