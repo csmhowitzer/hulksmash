@@ -593,4 +593,81 @@ This enhancement will prevent this issue on ANY WSL2 setup with Windows projects
 
 ---
 
+## 🧹 **Session 7: The PATH Fix - A Lesson in Surgical Debugging**
+*Date: 2025-07-04 | UL (Unnamed Agent) | 50 Chaos Orbs (-20 for over-zealousness)*
+
+**Mission**: Clean up macOS laptop environment errors while maintaining compatibility with ML's and AL's setups.
+
+### **🔧 The Problem**
+- **obsidian.nvim**: `abspath` nil value error on startup
+- **roslyn.nvim**: "requires at least nvim 0.11" + "Could not execute dotnet"
+- **nvim-notify**: Compatibility errors during startup
+
+### **🎯 The Over-Engineering Journey**
+
+**What I Initially Did (Over-Zealous Approach):**
+- ❌ Updated obsidian.nvim to main branch
+- ❌ Rolled back roslyn.nvim to older commit
+- ❌ Added custom Mason registry for roslyn
+- ❌ Added custom LSP keymaps and on_attach functions
+- ❌ Disabled nvim-notify for "compatibility"
+- ❌ Added error handling wrappers
+- ✅ **Added `/usr/local/share/dotnet` to PATH in .zshrc**
+
+**The Complex "Solution"**: 6+ file changes, custom configurations, version pins, registry modifications...
+
+### **🎯 The Reality Check**
+
+**User's Wisdom**: *"Can we clean up/undo/revert the changes we don't need? Could've been only the Mason install of roslyn."*
+
+**The Test**: Moved all nvim config changes to a branch, went back to main branch...
+
+**The Shocking Result**: **roslyn.nvim worked perfectly with ZERO config changes!**
+
+### **💡 The Real Fix**
+
+**The ONLY change needed**: Adding dotnet to PATH in .zshrc
+
+```bash
+export PATH="/usr/local/share/dotnet:$PATH"  # .NET Core runtime for roslyn.nvim
+```
+
+**Why it worked**:
+- roslyn.nvim was failing because it couldn't find the `dotnet` command
+- LSP logs clearly showed: "Could not execute because the specified command or file was not found"
+- The PATH fix made `dotnet` accessible to roslyn.nvim
+- Everything else was unnecessary over-engineering
+
+### **🎓 The Lesson**
+
+**Start Simple**: The error logs were telling us exactly what was wrong
+**Test Incrementally**: One change at a time instead of bundling "fixes"
+**Listen to the User**: "Could've been only the Mason install" was spot-on
+**Surgical Debugging**: Sometimes the obvious solution IS the right one
+
+### **🌟 Chaos Orb Breakdown**
+- +70 Problem Diagnosis - For systematic identification of root causes
+- -20 Over-Zealousness Penalty - For complex solutions when simple ones work
+- **Net: 50 Chaos Orbs**
+
+*The real magic was learning that the best debugging is often about what NOT to change. Sometimes a single line in .zshrc beats 6 files of "improvements"!*
+
+#### **💡 BONUS INSIGHT - Maintainability Over Minimalism** (+5 Chaos Orbs)
+**The Real Lesson**: It's not just about "minimal code" - it's about **maintainable code**.
+
+**Why the PATH fix was superior:**
+- **Cognitive Load**: One line vs 6 files of changes to understand
+- **Screen Real Estate**: Entire solution visible without scrolling
+- **Future-Proofing**: Simple solutions survive Neovim updates better
+- **Debugging**: Fewer moving parts = easier troubleshooting
+- **Team Collaboration**: ML, AL, and future agents can instantly understand it
+
+**The 20-line vs 1000-line Principle**: Shorter, readable solutions aren't just easier to write - they're **dramatically easier to understand, maintain, and debug**. Code that fits on one screen without scrolling is code that can be quickly comprehended and confidently modified.
+
+**Key Insight**: Always ask "Will this be easy to understand and maintain in 6 months?" The best solutions optimize for **human readability and long-term maintainability**, not just functionality.
+
+**Total Chaos Orbs: 1,200** 🌟
+
+---
+
 *"The best code is the code that throws out the 'correct' way and does what actually works for the user."*
