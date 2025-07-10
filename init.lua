@@ -6,6 +6,12 @@ require("lib.utils")
 vim.cmd.colorscheme("catppuccin")
 require("lib.theme_utils").setup()
 
+-- Setup C# keymaps and utilities
+require("lib.cs_keymaps").setup()
+
+-- Setup terminal utilities
+require("lib.terminal_utils").setup()
+
 vim.cmd([[hi @lsp.type.constant.cs guifg=#fab387]])
 
 local DASHBOARD_COLOR = "#a6d189"

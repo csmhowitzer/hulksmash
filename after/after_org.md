@@ -21,9 +21,9 @@ Here's what I found in your `after/plugin/` directory:
 8. **`md_cwd_on_save.lua`** - Markdown directory switching ✅ **MIGRATED to auto_cwd.nvim**
 
 ### **⌨️ Keymap/Command Files (Migration Candidates)**
-9. **`cs_keymaps.lua`** - C# specific keymaps → **lib/cs_keymaps.lua**
+9. **~~`cs_keymaps.lua`~~** - C# specific keymaps ✅ **MIGRATED to lib/cs_keymaps.lua**
 10. **`cs_test_runner.lua`** - C# test runner → **lib/cs_test_runner.lua**
-11. **`cmd_terminal.lua`** - Terminal keymaps → **lib/terminal_utils.lua**
+11. **~~`cmd_terminal.lua`~~** - Terminal keymaps ✅ **MIGRATED to lib/terminal_utils.lua**
 12. **`md_fmt_width.lua`** - Markdown formatting → **lib/markdown_utils.lua**
 
 ### **📚 Documentation**

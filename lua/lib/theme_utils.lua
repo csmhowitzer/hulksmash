@@ -38,6 +38,42 @@ function M.apply_default_settings()
   vim.api.nvim_set_hl(0, "SignColumn", { fg = "#CB444A" }) -- a pinkish color
   vim.api.nvim_set_hl(0, "WinSeparator", { fg = "#638860" })
 
+  -- Configure diagnostics hover window with border (matches LSP hover style)
+  vim.diagnostic.config({
+    float = {
+      border = "rounded",
+      source = "always",
+      header = "",
+      prefix = "",
+      format = function(diagnostic)
+        local code = diagnostic.code and string.format(" [%s]", diagnostic.code) or ""
+        return string.format("%s%s", diagnostic.message, code)
+      end,
+    },
+    -- Show diagnostics automatically when cursor is on a line with diagnostics
+    virtual_text = true,
+    signs = true,
+    underline = true,
+    update_in_insert = false,
+    severity_sort = true,
+  })
+
+  -- Auto-show diagnostics hover when navigating to errors (like quickfix navigation)
+  vim.api.nvim_create_autocmd("CursorHold", {
+    group = vim.api.nvim_create_augroup("DiagnosticsHover", { clear = true }),
+    callback = function()
+      local opts = {
+        focusable = false,
+        close_events = { "BufLeave", "CursorMoved", "InsertEnter", "FocusLost" },
+        border = "rounded",
+        source = "always",
+        prefix = "",
+        scope = "cursor",
+      }
+      vim.diagnostic.open_float(nil, opts)
+    end
+  })
+
   -- You can configure highlights by doing something like
   vim.cmd.hi("Comment gui=italic")
 end
