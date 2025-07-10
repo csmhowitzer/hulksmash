@@ -1,30 +1,34 @@
--- will want to update this to auto run on load rather than functions to call
-function ToggleThru()
-  -- we want to change transparent background
+---@class ThemeUtils
+---@field setup function
+---@field toggle_transparent function
+---@field toggle_dark function
+---@field apply_default_settings function
+local M = {}
 
+--- Toggle to transparent background theme
+---@return nil
+function M.toggle_transparent()
   vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
   vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
   vim.api.nvim_set_hl(0, "TelescopeNormal", { bg = "none" })
   vim.api.nvim_set_hl(0, "LineNrAbove", { fg = "#6078A0" })
-  -- vim.api.nvim_set_hl(0, 'CursorLineNr', )
   vim.api.nvim_set_hl(0, "LineNrBelow", { fg = "#6078A0" })
   vim.api.nvim_set_hl(0, "WinSeparator", { fg = "#638860" })
 end
 
-function ToggleDark()
-  -- we want to change transparent background
-
-  -- catppuccin palletttte original bg color #1e1e2e
+--- Toggle to dark background theme
+---@return nil
+function M.toggle_dark()
+  -- catppuccin palette original bg color #1e1e2e
   vim.api.nvim_set_hl(0, "Normal", { bg = "#060609" })
   vim.api.nvim_set_hl(0, "NormalFloat", { bg = "#060609" })
   vim.api.nvim_set_hl(0, "TelescopeNormal", { bg = "#060609" })
   vim.api.nvim_set_hl(0, "WinSeparator", { fg = "#638860" })
 end
 
-vim.keymap.set("n", "<leader>tt", "<cmd>lua ToggleThru()<CR>", { desc = "Toggle Transparent background (transparent)" })
-vim.keymap.set("n", "<leader>td", "<cmd>lua ToggleDark()<CR>", { desc = "Toggle Transparent background (dark color)" })
-
-function DefaultSchemeSettings()
+--- Apply default scheme settings with transparent background and custom highlights
+---@return nil
+function M.apply_default_settings()
   vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
   vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
   vim.api.nvim_set_hl(0, "NormalNC", { bg = "none" })
@@ -37,3 +41,26 @@ function DefaultSchemeSettings()
   -- You can configure highlights by doing something like
   vim.cmd.hi("Comment gui=italic")
 end
+
+--- Setup theme utilities with keymaps
+---@param opts? table Optional configuration table
+---@return nil
+function M.setup(opts)
+  opts = opts or {}
+  
+  -- Set up keymaps
+  vim.keymap.set("n", "<leader>tt", function()
+    M.toggle_transparent()
+  end, { desc = "Toggle Transparent background (transparent)" })
+  
+  vim.keymap.set("n", "<leader>td", function()
+    M.toggle_dark()
+  end, { desc = "Toggle Transparent background (dark color)" })
+  
+  -- Apply default settings if requested
+  if opts.apply_defaults ~= false then
+    M.apply_default_settings()
+  end
+end
+
+return M

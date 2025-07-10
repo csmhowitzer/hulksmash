@@ -12,7 +12,7 @@ Here's what I found in your `after/plugin/` directory:
 3. **`luasnip.lua`** - LuaSnip configuration (after plugin loading)
 
 ### **🎨 UI/Theme Files (Migration Candidates)**
-4. **`change_colors.lua`** - Theme toggle functions → **lib/theme_utils.lua**
+4. **~~`change_colors.lua`~~** - Theme toggle functions ✅ **MIGRATED to lib/theme_utils.lua**
 5. **`scratch_pad.lua`** - Snacks scratch pad customization → **lib/scratch_pad.lua**
 
 ### **📁 File Type Autocmds (Consolidation Candidates)**

@@ -2,18 +2,9 @@
 require("config.lazy")
 require("lib.utils")
 
+-- Setup theme utilities and apply default settings
 vim.cmd.colorscheme("catppuccin")
-vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
-vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
-vim.api.nvim_set_hl(0, "NormalNC", { bg = "none" })
-vim.api.nvim_set_hl(0, "NeoTreeNormal", { bg = "none" })
-vim.api.nvim_set_hl(0, "NeoTreeNormalNC", { bg = "none" })
-vim.api.nvim_set_hl(0, "TelescopeNormal", { bg = "none" })
-vim.api.nvim_set_hl(0, "SignColumn", { fg = "#CB444A" }) -- a pinkish color
-vim.api.nvim_set_hl(0, "WinSeparator", { fg = "#638860" })
-
--- You can configure highlights by doing something like
-vim.cmd.hi("Comment gui=italic")
+require("lib.theme_utils").setup()
 
 vim.cmd([[hi @lsp.type.constant.cs guifg=#fab387]])
 
