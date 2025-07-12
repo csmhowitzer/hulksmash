@@ -12,6 +12,9 @@ require("lib.cs_keymaps").setup()
 -- Setup terminal utilities
 require("lib.terminal_utils").setup()
 
+-- Setup format width rules for different file types
+require("lib.format_width").setup()
+
 vim.cmd([[hi @lsp.type.constant.cs guifg=#fab387]])
 
 local DASHBOARD_COLOR = "#a6d189"

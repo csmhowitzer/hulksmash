@@ -24,7 +24,7 @@ Here's what I found in your `after/plugin/` directory:
 9. **~~`cs_keymaps.lua`~~** - C# specific keymaps ✅ **MIGRATED to lib/cs_keymaps.lua**
 10. **`cs_test_runner.lua`** - C# test runner → **lib/cs_test_runner.lua**
 11. **~~`cmd_terminal.lua`~~** - Terminal keymaps ✅ **MIGRATED to lib/terminal_utils.lua**
-12. **`md_fmt_width.lua`** - Markdown formatting → **lib/markdown_utils.lua**
+12. **~~`md_fmt_width.lua`~~** - Format width rules ✅ **MIGRATED to lib/format_width.lua**
 
 ### **📚 Documentation**
 13. **`AFTER_PLUGIN.md`** - Keep for architectural documentation
@@ -33,8 +33,9 @@ Here's what I found in your `after/plugin/` directory:
 
 ### **High Priority (Clean Consolidation):**
 1. **~~Consolidate CWD files~~** → ✅ **COMPLETE** - Migrated to `auto_cwd.nvim` plugin
-2. **Move theme functions** → `lib/theme_utils.lua`
-3. **Move C# utilities** → `lib/cs_keymaps.lua` & `lib/cs_test_runner.lua`
+2. **~~Move theme functions~~** → ✅ **COMPLETE** - Migrated to `lib/theme_utils.lua`
+3. **~~Move format width rules~~** → ✅ **COMPLETE** - Migrated to `lib/format_width.lua`
+4. **Move C# utilities** → `lib/cs_keymaps.lua` & `lib/cs_test_runner.lua`
 
 ### **Medium Priority:**
 4. **Terminal utilities** → `lib/terminal_utils.lua`
@@ -51,6 +52,16 @@ Here's what I found in your `after/plugin/` directory:
   - ✅ **Runtime language control**
   - ✅ **Proper plugin structure**
   - ✅ **46 comprehensive tests** (by ML)
+
+### **Format Width Migration (COMPLETE)**
+- **Before**: `after/plugin/md_fmt_width.lua` with hardcoded autocmds
+- **After**: `lib/format_width.lua` with:
+  - ✅ **Proper module structure** with Lua annotations
+  - ✅ **Configurable width settings** per file type
+  - ✅ **Support for 3 languages** (Markdown, C#, Lua)
+  - ✅ **Extensible API** for adding new file types
+  - ✅ **Clean autocmd organization** with descriptive names
+  - ✅ **Loaded in init.lua** for proper initialization
 
 ## � **Potential Self-Contained Plugins**
 *Candidates to move into ~/plugins/ directory*
