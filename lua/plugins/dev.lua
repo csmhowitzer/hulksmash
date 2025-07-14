@@ -16,4 +16,17 @@ return {
       })
     end,
   },
+  {
+    dir = "~/plugins/format-width.nvim",
+    name = "format-width",
+    build = ":helptags doc",
+    config = function()
+      require("format-width").setup({
+        -- Uses built-in defaults:
+        -- markdown: 80 chars, conceallevel=2
+        -- cs: 120 chars, tabstop=4
+        -- lua: 120 chars, tabstop=2
+      })
+    end,
+  },
 }

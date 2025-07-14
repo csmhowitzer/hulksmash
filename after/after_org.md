@@ -31,11 +31,15 @@ Here's what I found in your `after/plugin/` directory:
 
 ## 🎯 **Migration Recommendations:**
 
-### **High Priority (Clean Consolidation):**
+### **High Priority (Plugin Extractions):**
 1. **~~Consolidate CWD files~~** → ✅ **COMPLETE** - Migrated to `auto_cwd.nvim` plugin
 2. **~~Move theme functions~~** → ✅ **COMPLETE** - Migrated to `lib/theme_utils.lua`
-3. **~~Move format width rules~~** → ✅ **COMPLETE** - Migrated to `lib/format_width.lua`
-4. **Move C# utilities** → `lib/cs_keymaps.lua` & `lib/cs_test_runner.lua`
+3. **~~Enhance format width~~** → ✅ **COMPLETE** - Enhanced `lib/format_width.lua` (ready for plugin)
+4. **~~C# build system~~** → ✅ **COMPLETE** - Enhanced `lib/cs_build.lua` + `lib/cs_keymaps.lua` (ready for plugin)
+5. **Plugin Extractions Ready**:
+   - **`format-width.nvim`** - Universal text formatting with advanced features
+   - **`csharp-build.nvim`** - Professional C# build system with visual feedback
+   - **`scratch-manager.nvim`** - Buffer management utilities
 
 ### **Medium Priority:**
 4. **Terminal utilities** → `lib/terminal_utils.lua`
@@ -53,15 +57,27 @@ Here's what I found in your `after/plugin/` directory:
   - ✅ **Proper plugin structure**
   - ✅ **46 comprehensive tests** (by ML)
 
-### **Format Width Migration (COMPLETE)**
+### **Format Width Enhancement (COMPLETE)**
 - **Before**: `after/plugin/md_fmt_width.lua` with hardcoded autocmds
-- **After**: `lib/format_width.lua` with:
-  - ✅ **Proper module structure** with Lua annotations
-  - ✅ **Configurable width settings** per file type
-  - ✅ **Support for 3 languages** (Markdown, C#, Lua)
-  - ✅ **Extensible API** for adding new file types
-  - ✅ **Clean autocmd organization** with descriptive names
-  - ✅ **Loaded in init.lua** for proper initialization
+- **After**: `lib/format_width.lua` with advanced features:
+  - ✅ **Enhanced configuration system** with validation and backward compatibility
+  - ✅ **Toggleable width enforcement** (`:FormatWidthToggle`)
+  - ✅ **Manual formatting commands** (`:FormatWidth [width]`)
+  - ✅ **Format-on-save** (opt-in per filetype)
+  - ✅ **Simple reset command** (`:FormatWidthReset`)
+  - ✅ **Comprehensive help** (`:FormatWidthHelp`)
+  - ✅ **Ready for plugin extraction** to `~/plugins/format-width.nvim`
+
+### **C# Build System Enhancement (COMPLETE)**
+- **Before**: Basic build functionality scattered across files
+- **After**: Professional-grade build system:
+  - ✅ **Animated visual feedback** (spinner + real-time timer)
+  - ✅ **Multi-solution support** (explicit .sln/.csproj targeting)
+  - ✅ **Terminal-compatible keymaps** (F4-F9 logical grouping)
+  - ✅ **Quickfix integration** with error/warning navigation
+  - ✅ **Context-aware execution** (works from any file in solution/project)
+  - ✅ **Clean architecture** (`cs_build.lua` + `cs_keymaps.lua`)
+  - ✅ **Ready for plugin extraction** to `~/plugins/csharp-build.nvim`
 
 ## � **Potential Self-Contained Plugins**
 *Candidates to move into ~/plugins/ directory*
