@@ -26,7 +26,54 @@ vim.api.nvim_create_autocmd("LspAttach", {
 
     map("<leader>ds", require("telescope.builtin").lsp_document_symbols, "[D]ocument [S]ymbols")
     map("<leader>ws", require("telescope.builtin").lsp_dynamic_workspace_symbols, "[W]orkspace [S]ymbols")
-    map("<leader>rn", vim.lsp.buf.rename, "[R]e[n]ame")
+
+    -- Refactoring keymaps (code refactor category)
+    map("<leader>crn", vim.lsp.buf.rename, "[C]ode [R]efactor Re[n]ame")
+    map("<leader>crm", function()
+      -- Suppress the same roslyn.nvim cancellation bug for extract method
+      local original_notify = vim.notify
+      vim.notify = function(msg, level, opts)
+        if type(msg) == "string" and
+           msg:find("lsp_commands%.lua:72") and
+           msg:find("attempt to index local 'action'") then
+          return
+        end
+        original_notify(msg, level, opts)
+      end
+
+      vim.lsp.buf.code_action({
+        context = { only = { "refactor.extract" } },
+        filter = function(action)
+          return action.title:match("[Ee]xtract.*[Mm]ethod") or
+                 action.title:match("[Ee]xtract.*[Ff]unction")
+        end,
+        apply = true,
+      })
+
+      -- Restore after user interaction time
+      vim.defer_fn(function()
+        vim.notify = original_notify
+      end, 2000)
+    end, "[C]ode [R]efactor Extract [M]ethod", { "n", "x" })
+    map("<leader>crc", function()
+      -- NOTE: This works correctly but shows a roslyn.nvim error when escaping selection
+      -- Error: "attempt to index local 'action' (a nil value)" in lsp_commands.lua:72
+      -- The functionality works despite the error - this is a known roslyn.nvim bug
+      -- Will be retested during Neovim 0.11 upgrade
+
+      vim.lsp.buf.code_action({
+        filter = function(action)
+          return action.title and (
+            action.title:find("Introduce constant") or
+            action.title:find("Introduce variable")
+          )
+        end,
+        apply = true,
+      })
+    end, "[C]ode [R]efactor Extract [C]onstant", { "n", "x" })
+
+
+
     map("<leader>ca", vim.lsp.buf.code_action, "[C]ode [A]ction", { "n", "x" })
 
     -- The following two autocommands are used to highlight references of the

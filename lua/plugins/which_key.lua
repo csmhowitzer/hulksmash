@@ -19,7 +19,7 @@ return {
           { "<leader>q", group = "Quickfix" },
           { "<leader>i", group = "Treesitter [I]nspect" },
           { "<leader>p", group = "oil explorer", icon = { icon = "", color = "yellow" } },
-          { "<leader>r", group = "lsp rename" },
+          { "<leader>cr", group = "code refactor" },
           { "<leader>a", group = "augment ai" },
           { "<leader>y", group = "quit session (persistance)" },
           { "<leader>t", group = "custom transparency", icon = { icon = "", color = "cyan" } },

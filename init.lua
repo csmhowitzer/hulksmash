@@ -12,8 +12,7 @@ require("lib.cs_keymaps").setup()
 -- Setup terminal utilities
 require("lib.terminal_utils").setup()
 
--- Setup format width rules for different file types
-require("lib.format_width").setup()
+-- Format width handled by format-width.nvim plugin
 
 vim.cmd([[hi @lsp.type.constant.cs guifg=#fab387]])
 

@@ -34,10 +34,10 @@ Here's what I found in your `after/plugin/` directory:
 ### **High Priority (Plugin Extractions):**
 1. **~~Consolidate CWD files~~** → ✅ **COMPLETE** - Migrated to `auto_cwd.nvim` plugin
 2. **~~Move theme functions~~** → ✅ **COMPLETE** - Migrated to `lib/theme_utils.lua`
-3. **~~Enhance format width~~** → ✅ **COMPLETE** - Enhanced `lib/format_width.lua` (ready for plugin)
+3. **~~Enhance format width~~** → ✅ **EXTRACTED** - `~/plugins/format-width.nvim` with help docs
 4. **~~C# build system~~** → ✅ **COMPLETE** - Enhanced `lib/cs_build.lua` + `lib/cs_keymaps.lua` (ready for plugin)
 5. **Plugin Extractions Ready**:
-   - **`format-width.nvim`** - Universal text formatting with advanced features
+   - **~~`format-width.nvim`~~** → ✅ **COMPLETE** - Extracted with professional help docs
    - **`csharp-build.nvim`** - Professional C# build system with visual feedback
    - **`scratch-manager.nvim`** - Buffer management utilities
 
@@ -57,16 +57,16 @@ Here's what I found in your `after/plugin/` directory:
   - ✅ **Proper plugin structure**
   - ✅ **46 comprehensive tests** (by ML)
 
-### **Format Width Enhancement (COMPLETE)**
+### **Format Width Enhancement (COMPLETE → EXTRACTED)**
 - **Before**: `after/plugin/md_fmt_width.lua` with hardcoded autocmds
-- **After**: `lib/format_width.lua` with advanced features:
+- **After**: ✅ **EXTRACTED to `~/plugins/format-width.nvim`** with advanced features:
   - ✅ **Enhanced configuration system** with validation and backward compatibility
   - ✅ **Toggleable width enforcement** (`:FormatWidthToggle`)
   - ✅ **Manual formatting commands** (`:FormatWidth [width]`)
   - ✅ **Format-on-save** (opt-in per filetype)
   - ✅ **Simple reset command** (`:FormatWidthReset`)
-  - ✅ **Comprehensive help** (`:FormatWidthHelp`)
-  - ✅ **Ready for plugin extraction** to `~/plugins/format-width.nvim`
+  - ✅ **Professional help documentation** (`:help format-width`)
+  - ✅ **Old lib/format_width.lua removed** - plugin is the sole system
 
 ### **C# Build System Enhancement (COMPLETE)**
 - **Before**: Basic build functionality scattered across files

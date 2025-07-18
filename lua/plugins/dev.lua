@@ -7,6 +7,7 @@ return {
   {
     dir = "~/plugins/auto_cwd.nvim",
     name = "auto_cwd",
+    build = ":helptags doc",
     config = function()
       require("auto_cwd").setup({
         enabled_languages = { "csharp", "golang", "obsidian" },
