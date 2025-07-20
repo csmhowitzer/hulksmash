@@ -221,23 +221,24 @@ ls.add_snippets("cs", {
       }
     )
   ),
-  s(
-    {
-      trig = "///",
-      descr = "XML comment summary",
-    },
-    fmt(
-      [[
-    /// <summary>
-    /// {}
-    /// </summary>{}
-    ]],
-      {
-        i(1),
-        i(2),
-      }
-    )
-  ),
+  -- Commented out - replaced by m_roslyn auto_insert_docs LSP-based enhancement
+  -- s(
+  --   {
+  --     trig = "///",
+  --     descr = "XML comment summary",
+  --   },
+  --   fmt(
+  --     [[
+  --   /// <summary>
+  --   /// {}
+  --   /// </summary>{}
+  --   ]],
+  --     {
+  --       i(1),
+  --       i(2),
+  --     }
+  --   )
+  -- ),
   s(
     "XML XML",
     fmt([[{}]], {

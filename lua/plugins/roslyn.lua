@@ -125,6 +125,11 @@ return {
       -- Setup roslyn with the provided options
       require("roslyn").setup(opts)
 
+      -- Setup m_roslyn enhancements
+      require("m_roslyn").setup({
+        auto_insert_docs = true, -- Enable documentation auto-insert
+      })
+
       -- NEW: Auto re-enable heavy features after initialization completes
       -- This provides fast startup with full functionality after project loads
       vim.api.nvim_create_autocmd("LspAttach", {
