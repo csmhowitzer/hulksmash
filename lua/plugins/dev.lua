@@ -30,4 +30,17 @@ return {
       })
     end,
   },
+  {
+    dir = "~/plugins/scratch-manager.nvim",
+    name = "scratch-manager",
+    build = ":helptags doc",
+    config = function()
+      require("scratch-manager").setup({
+        -- Uses built-in defaults:
+        -- border_color = "#F7DC6F"
+        -- default_filetype = "markdown"
+        -- enable_keymaps = true
+      })
+    end,
+  },
 }
