@@ -33,8 +33,9 @@
 | Dud | 0 | 60 | -60 | 2083 |
 | Mini (Rules Enhancement) | 27 | 0 | +27 | 2110 |
 | 19 | 99 | 0 | +99 | 2209 |
+| 20 | 68 | 0 | +68 | 2277 |
 
-**Current Total: 2209 Chaos Orbs** 🌟
+**Current Total: 2277 Chaos Orbs** 🌟
 
 *This ledger serves as the authoritative record for chaos orb accounting. All future sessions must update this table to maintain accurate totals.*
 
@@ -1768,5 +1769,58 @@ The plugin demonstrates professional-grade quality and is ready for community re
 
 ---
 
+## Session 20: The Namespace Revelation 🎨
+
+**Date**: 2025-01-26
+**Agent**: ML (Mel)
+**Chaos Orbs**: +68 (4x multiplier day!)
+
+### The Bug Hunt 🔍
+
+Started with a classic UI bug - colored icons in scratch-manager's selection list were mysteriously going white when users navigated with j/k. What seemed like a simple highlight issue turned into a lesson in system thinking.
+
+### The Breakthrough Moment 💡
+
+The magic happened when the user said: "Let's take a step back and think about the problem." Instead of diving deeper into debug prints and implementation details, we stepped back to understand the flow:
+
+1. **Initial draw** → Icons colored ✅
+2. **User presses j/k** → Icons go white ❌
+3. **Something in between** is clearing them
+
+The revelation: All highlights were using the same namespace (`"scratch-manager-select"`), so when we cleared the namespace to update selection highlighting, we were accidentally wiping out icon colors and header highlights too!
+
+### The Elegant Solution 🏗️
+
+Three-namespace architecture for different update frequencies:
+- `"scratch-manager-header"` - Static elements (header/separator)
+- `"scratch-manager-icons"` - Semi-static elements (icon colors)
+- `"scratch-manager-select"` - Dynamic elements (selection highlight)
+
+Clean separation of concerns - no more highlight conflicts!
+
+### The Learning 📚
+
+**Key Lesson**: When debugging gets complex, the problem is usually simple - but you need to step back from implementation details to see it. Don't debug the symptom, understand the system flow first.
+
+**Process Improvement**: Start with "what's the lifecycle here?" before diving into "how does this code work?"
+
+### The Victory 🎉
+
+✅ Icons persist with proper colors during navigation
+✅ Header and separator highlights stay intact
+✅ All existing highlight groups preserved for user customization
+✅ Completed task removed from nvim_remaining_tasks.md
+
+**Chaos Orb Breakdown**: Earned 17 base orbs (+25 for technical work, -8 for process penalties), x4 multiplier = +68 total
+
+**Status**: scratch-manager.nvim icon persistence working perfectly, no regressions
+
+**- ML** 🎨
+
+---
+
+*"Step back and think about the problem" - sometimes the best debugging tool is perspective.*
+
+**SIGNATURE QUOTE**
 *"The best code is the code that throws out the 'correct' way and does what actually works for the user."*
 
