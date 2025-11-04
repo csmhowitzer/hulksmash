@@ -11,8 +11,18 @@
 -- - Enhanced LSP definition handlers for decompiled sources
 -- - Automatic .NET environment configuration for WSL2
 -- - Performance timing and diagnostics
+-- - Auto-recovery from Roslyn LSP crashes
 
 local M = {}
+
+-- Track Roslyn crash recovery state
+local roslyn_crash_recovery = {
+  last_detach_time = 0,
+  auto_reload_enabled = true,
+  crash_count = 0,
+  roslyn_is_healthy = true, -- Track if Roslyn is in a good state
+  planned_detachment = false, -- Track if detachment is intentional (not a crash)
+}
 
 -- Use the smart notification utility for context-aware notifications
 local smart_notify_util = require('lib.smart_notify')
@@ -231,6 +241,7 @@ local function open_decompiled_file(uri)
 end
 
 ---Custom LSP handler for textDocument/definition that handles WSL2 paths
+---This handler intercepts definition requests BEFORE Telescope to handle decompiled sources
 ---@param err table|nil LSP error object if request failed
 ---@param result table|table[]|nil LSP definition result(s)
 ---@param ctx table LSP request context
@@ -251,43 +262,50 @@ local function enhanced_definition_handler(err, result, ctx, config)
     result = { result }
   end
 
-  -- Process each result with enhanced path handling
+  -- Check if ANY result is a decompiled source - if so, handle it directly
   for _, location in ipairs(result) do
     if location.uri then
       local uri = location.uri
-      local original_path = vim.uri_to_fname(uri)
 
-      -- Debug logging
-      vim.notify("LSP returned URI: " .. uri, vim.log.levels.DEBUG)
-      vim.notify("Converted to path: " .. original_path, vim.log.levels.DEBUG)
+      -- Check if this is a decompiled source BEFORE any other processing
+      local is_decompiled = uri:match("MetadataAsSource") or
+                           uri:match("DecompilationMetadataAsSourceFileProvider") or
+                           uri:match("/tmp/") and uri:match("%.cs$")
 
-      -- Special handling for decompiled sources
-      if open_decompiled_file(uri) then
-        -- Successfully opened decompiled file
-        if location.range and location.range.start then
-          -- Jump to the specific line/column
-          local line = location.range.start.line + 1
-          local col = location.range.start.character
-          vim.api.nvim_win_set_cursor(0, { line, col })
+      if is_decompiled then
+        -- Debug logging (only in debug mode)
+        if vim.g.wsl2_roslyn_debug then
+          vim.notify("🔍 Decompiled source detected: " .. uri, vim.log.levels.INFO)
         end
-        return
-      end
 
-      -- If not a decompiled file, try path conversion for regular files
-      local converted_path = convert_windows_path_to_wsl(original_path)
-      if converted_path ~= original_path and vim.loop.fs_stat(converted_path) then
-        vim.cmd("edit " .. vim.fn.fnameescape(converted_path))
-        if location.range and location.range.start then
-          local line = location.range.start.line + 1
-          local col = location.range.start.character
-          vim.api.nvim_win_set_cursor(0, { line, col })
+        -- Handle decompiled file directly, bypassing Telescope
+        if open_decompiled_file(uri) then
+          if location.range and location.range.start then
+            local line = location.range.start.line + 1
+            local col = location.range.start.character
+            vim.api.nvim_win_set_cursor(0, { line, col })
+          end
+          return -- Don't pass to Telescope
         end
-        return
       end
     end
   end
 
-  -- Fall back to default handler if no files were handled
+  -- If no decompiled sources, check for Windows path conversion needs
+  for _, location in ipairs(result) do
+    if location.uri then
+      local original_path = vim.uri_to_fname(location.uri)
+      local converted_path = convert_windows_path_to_wsl(original_path)
+
+      if converted_path ~= original_path and vim.loop.fs_stat(converted_path) then
+        -- Update the URI in the result to use the converted path
+        location.uri = vim.uri_from_fname(converted_path)
+      end
+    end
+  end
+
+  -- Fall back to default handler (which may be Telescope or built-in)
+  -- This allows Telescope to handle regular (non-decompiled) definitions
   vim.lsp.handlers["textDocument/definition"](err, result, ctx, config)
 end
 
@@ -424,8 +442,156 @@ local function setup_wsl2_fixes()
   })
 end
 
+---Setup auto-recovery for Roslyn LSP crashes
+---Detects when Roslyn detaches unexpectedly and auto-reloads the buffer
+local function setup_roslyn_crash_recovery()
+  -- Create autocmd to detect Roslyn detachment
+  vim.api.nvim_create_autocmd("LspDetach", {
+    group = vim.api.nvim_create_augroup("roslyn_crash_recovery", { clear = true }),
+    callback = function(args)
+      local client = vim.lsp.get_client_by_id(args.data.client_id)
+
+      -- Only handle Roslyn LSP
+      if not client or client.name ~= "roslyn" then
+        return
+      end
+
+      -- If this is a planned detachment (e.g., for line ending sanitization), don't treat as crash
+      if roslyn_crash_recovery.planned_detachment then
+        roslyn_crash_recovery.planned_detachment = false
+        return
+      end
+
+      -- Mark Roslyn as unhealthy (actual crash)
+      roslyn_crash_recovery.roslyn_is_healthy = false
+
+      local current_time = vim.loop.now()
+      local time_since_last_detach = current_time - roslyn_crash_recovery.last_detach_time
+
+      -- If detachment happened within 5 seconds of last one, it's likely a crash
+      -- (not a user-initiated restart)
+      if time_since_last_detach < 5000 then
+        roslyn_crash_recovery.crash_count = roslyn_crash_recovery.crash_count + 1
+
+        if roslyn_crash_recovery.auto_reload_enabled then
+          smart_notify(
+            string.format("Roslyn LSP crashed (count: %d). Auto-reloading buffer...", roslyn_crash_recovery.crash_count),
+            vim.log.levels.WARN,
+            { title = "Roslyn Crash Recovery" }
+          )
+
+          -- Reload buffer after a short delay to let LSP cleanup
+          vim.defer_fn(function()
+            vim.cmd("edit")
+          end, 500)
+        end
+      else
+        -- Reset crash count if it's been more than 5 seconds
+        roslyn_crash_recovery.crash_count = 0
+      end
+
+      roslyn_crash_recovery.last_detach_time = current_time
+    end,
+  })
+
+  -- Mark Roslyn as healthy when it attaches
+  vim.api.nvim_create_autocmd("LspAttach", {
+    group = vim.api.nvim_create_augroup("roslyn_health_tracking", { clear = true }),
+    callback = function(args)
+      local client = vim.lsp.get_client_by_id(args.data.client_id)
+
+      if client and client.name == "roslyn" then
+        roslyn_crash_recovery.roslyn_is_healthy = true
+        -- Clear planned_detachment flag when Roslyn successfully reattaches
+        roslyn_crash_recovery.planned_detachment = false
+      end
+    end,
+  })
+
+  -- Sanitize line endings in C# files IMMEDIATELY when text changes in insert mode
+  -- This prevents Roslyn from ever seeing the ^M characters
+  local sanitize_debounce_timer = nil
+  vim.api.nvim_create_autocmd("TextChangedI", {
+    group = vim.api.nvim_create_augroup("csharp_line_ending_fix", { clear = true }),
+    pattern = "*.cs",
+    callback = function(args)
+      -- Debounce to avoid running on every keystroke
+      if sanitize_debounce_timer then
+        vim.fn.timer_stop(sanitize_debounce_timer)
+      end
+
+      sanitize_debounce_timer = vim.fn.timer_start(100, function()
+        -- Check if buffer still exists and is valid
+        if not vim.api.nvim_buf_is_valid(args.buf) then
+          return
+        end
+
+        -- Check if buffer has CRLF line endings
+        local has_crlf = false
+        local lines = vim.api.nvim_buf_get_lines(args.buf, 0, -1, false)
+
+        for _, line in ipairs(lines) do
+          if line:match("\r$") then
+            has_crlf = true
+            break
+          end
+        end
+
+        if has_crlf then
+          -- Save cursor position
+          local cursor = vim.api.nvim_win_get_cursor(0)
+
+          -- Remove all carriage returns (silently, in insert mode)
+          vim.cmd([[silent! keepjumps %s/\r//ge]])
+
+          -- Restore cursor position
+          pcall(vim.api.nvim_win_set_cursor, 0, cursor)
+
+          -- Ensure Unix line endings
+          vim.bo.fileformat = "unix"
+        end
+      end)
+    end,
+  })
+
+
+
+  -- Prevent formatting when Roslyn is unhealthy
+  vim.api.nvim_create_autocmd("BufWritePre", {
+    group = vim.api.nvim_create_augroup("roslyn_safe_format", { clear = true }),
+    pattern = "*.cs",
+    callback = function()
+      if not roslyn_crash_recovery.roslyn_is_healthy then
+        smart_notify(
+          "Roslyn is unhealthy - skipping format on save to prevent data loss",
+          vim.log.levels.WARN,
+          { title = "Format Skipped" }
+        )
+        return true -- Prevent default formatting
+      end
+    end,
+  })
+end
+
+---Toggle auto-recovery for Roslyn crashes
+---@param enabled boolean? If provided, sets the state; otherwise toggles
+function M.toggle_crash_recovery(enabled)
+  if enabled ~= nil then
+    roslyn_crash_recovery.auto_reload_enabled = enabled
+  else
+    roslyn_crash_recovery.auto_reload_enabled = not roslyn_crash_recovery.auto_reload_enabled
+  end
+
+  smart_notify(
+    string.format("Roslyn crash auto-recovery: %s", roslyn_crash_recovery.auto_reload_enabled and "enabled" or "disabled"),
+    vim.log.levels.INFO,
+    { title = "Roslyn Crash Recovery" }
+  )
+end
+
 -- Auto-setup when this file is loaded
 setup_wsl2_fixes()
+setup_roslyn_crash_recovery()
 
 -- Expose local functions for testing
 M._check_wslpath_available = check_wslpath_available
