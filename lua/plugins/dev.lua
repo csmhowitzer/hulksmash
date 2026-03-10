@@ -43,14 +43,14 @@ return {
       })
     end,
   },
-  {
-    dir = "~/plugins/enhance.nvim",
-    name = "enhance",
-    build = ":helptags doc",
-    config = function()
-      require("enhance").setup({
-        enabled = true,
-      })
-    end,
-  },
+  -- {
+  --   dir = "~/plugins/enhance.nvim",
+  --   name = "enhance",
+  --   build = ":helptags doc",
+  --   config = function()
+  --     require("enhance").setup({
+  --       enabled = true,
+  --     })
+  --   end,
+  -- },
 }

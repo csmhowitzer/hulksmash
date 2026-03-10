@@ -6,7 +6,6 @@ debug
 foo.*
 *.log
 data
-lazy-lock.json
 # Augment configuration and rules
 .augment/
 */.augment/
