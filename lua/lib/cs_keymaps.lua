@@ -10,9 +10,11 @@ local cs_build = require("lib.cs_build")
 M.build_solution = cs_build.build_solution
 M.rebuild_solution = cs_build.rebuild_solution
 M.clean_solution = cs_build.clean_solution
+M.restore_solution = cs_build.restore_solution
 M.build_project = cs_build.build_project
 M.rebuild_project = cs_build.rebuild_project
 M.clean_project = cs_build.clean_project
+M.restore_project = cs_build.restore_project
 M.get_version_info = cs_build.get_version_info
 
 ---Formats the selected list item
@@ -77,6 +79,10 @@ function M.setup(opts)
       vim.keymap.set("n", "<leader>drp", function()
         select_cs_proj_ref()
       end, { desc = "[D]otnet [P]roject [R]eference" })
+      vim.keymap.set("n", "<leader>rr", "<cmd>RoslynResync<CR>", {
+        desc = "[R]oslyn [R]esync",
+        buffer = true
+      })
     end,
   })
 
@@ -150,9 +156,18 @@ function M.setup(opts)
     complete = function() return {"on", "off"} end
   })
 
+  -- Restore commands
+  vim.api.nvim_create_user_command("CSRestoreSln", M.restore_solution, {
+    desc = "Restore NuGet packages for the solution"
+  })
+
+  vim.api.nvim_create_user_command("CSRestoreProj", M.restore_project, {
+    desc = "Restore NuGet packages for the current project"
+  })
+
   -- Version info command
-  vim.api.nvim_create_user_command("CSVersion", M.get_version_info, { 
-    desc = "Show C# and .NET version information" 
+  vim.api.nvim_create_user_command("CSVersion", M.get_version_info, {
+    desc = "Show C# and .NET version information"
   })
 
   -- Language-specific help command (pattern for other languages)
@@ -175,13 +190,18 @@ function M.setup(opts)
     print("  <leader>crm  - Extract Method")
     print("  <leader>crc  - Extract Constant (shows error on escape, but works)")
     print("")
+    print("# Roslyn LSP Keymaps:")
+    print("  <leader>rr   - Roslyn Resync (fix broken LSP state without full restart)")
+    print("")
     print("# Build Commands:")
     print("  :CSBuildSln    - Build solution")
     print("  :CSRebuildSln  - Rebuild solution")
     print("  :CSCleanSln    - Clean solution")
+    print("  :CSRestoreSln  - Restore NuGet packages for solution")
     print("  :CSBuildProj   - Build current project")
     print("  :CSRebuildProj - Rebuild current project")
     print("  :CSCleanProj   - Clean current project")
+    print("  :CSRestoreProj - Restore NuGet packages for current project")
     print("")
     print("# Utility Commands:")
     print("  :CSVersion     - Show C# and .NET version info")
@@ -196,8 +216,8 @@ function M.setup(opts)
     print("  • Build errors/warnings automatically populate quickfix list")
     print("  • Errors auto-open quickfix, warnings show notification")
     print("  • Use your existing navigation keymaps for quickfix")
-    
-    vim.notify("C# development tools help displayed in command line", vim.log.levels.INFO, { 
+
+    vim.notify("C# development tools help displayed in command line", vim.log.levels.INFO, {
       title = "C# Help",
       timeout = 3000
     })

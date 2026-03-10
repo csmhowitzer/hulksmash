@@ -5,7 +5,6 @@
     "lazyvim.plugins.extras.editor.telescope",
     "lazyvim.plugins.extras.lang.sql",
     "lazyvim.plugins.extras.lang.vue",
-    "lazyvim.plugins.extras.lang.yaml",
     "lazyvim.plugins.extras.util.mini-hipatterns"
   ],
   "install_version": 8,

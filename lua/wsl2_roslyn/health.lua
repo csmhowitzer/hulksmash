@@ -435,6 +435,77 @@ local function check_smart_notify_integration()
   end
 end
 
+---Check inotify limits for large solutions
+local function check_inotify_limits()
+  vim.health.start("inotify Limits")
+
+  -- Read current inotify limit
+  local handle = io.popen("cat /proc/sys/fs/inotify/max_user_instances 2>/dev/null")
+  if not handle then
+    vim.health.error("Failed to read inotify limits")
+    return
+  end
+
+  local result = handle:read("*a")
+  handle:close()
+
+  local current_limit = tonumber(result)
+  if not current_limit then
+    vim.health.error("Failed to parse inotify limit value")
+    return
+  end
+
+  -- Check if limit is adequate
+  local recommended_limit = 8192
+  local minimum_limit = 2048
+
+  vim.health.info(string.format("Current limit: %d", current_limit))
+  vim.health.info(string.format("Recommended limit: %d", recommended_limit))
+
+  if current_limit >= recommended_limit then
+    vim.health.ok(string.format("inotify limit is optimal (%d >= %d)", current_limit, recommended_limit))
+  elseif current_limit >= minimum_limit then
+    vim.health.warn(
+      string.format("inotify limit is adequate but could be higher (%d < %d)", current_limit, recommended_limit),
+      {
+        "Consider increasing to " .. recommended_limit .. " for large solutions:",
+        "  echo 'fs.inotify.max_user_instances=" .. recommended_limit .. "' | sudo tee /etc/sysctl.d/99-inotify.conf",
+        "  sudo sysctl -p /etc/sysctl.d/99-inotify.conf",
+      }
+    )
+  else
+    vim.health.error(
+      string.format("inotify limit too low (%d < %d) - Roslyn may fail to load projects", current_limit, minimum_limit),
+      {
+        "Fix commands:",
+        "  sudo sed -i '/fs.inotify.max_user_instances/d' /etc/sysctl.conf",
+        "  echo 'fs.inotify.max_user_instances=" .. recommended_limit .. "' | sudo tee /etc/sysctl.d/99-inotify.conf",
+        "  sudo sysctl -p /etc/sysctl.d/99-inotify.conf",
+        "Then restart Neovim",
+      }
+    )
+  end
+
+  -- Check for conflicting settings in /etc/sysctl.conf
+  local sysctl_handle = io.popen("grep -i 'fs.inotify.max_user_instances' /etc/sysctl.conf 2>/dev/null")
+  if sysctl_handle then
+    local sysctl_result = sysctl_handle:read("*a")
+    sysctl_handle:close()
+
+    if sysctl_result and sysctl_result:match("%S") then
+      vim.health.warn(
+        "Found inotify setting in /etc/sysctl.conf (may override /etc/sysctl.d/ settings)",
+        {
+          "Conflicting line: " .. sysctl_result:gsub("%s+", ""),
+          "Remove it with: sudo sed -i '/fs.inotify.max_user_instances/d' /etc/sysctl.conf",
+        }
+      )
+    else
+      vim.health.ok("No conflicting inotify settings in /etc/sysctl.conf")
+    end
+  end
+end
+
 ---Main health check function
 function M.check()
   local is_wsl2 = check_wsl2_compatibility()
@@ -446,6 +517,7 @@ function M.check()
     check_project_detection()
     check_wsl2_roslyn_fixes()
     check_filesystem()
+    check_inotify_limits()
   end
 
   check_diagnostic_tools()

@@ -22,6 +22,10 @@ vim.api.nvim_create_autocmd("LspAttach", {
     -- map('gI', require('telescope.builtin').lsp_implementations, '[G]oto [I]mplementation')
     -- map('<leader>D', require('telescope.builtin').lsp_type_definitions, 'Type [D]efinition')
     -- map('K', vim.lsp.buf.hover, 'Hover Documentation')
+    map("gh", vim.lsp.buf.hover, "Hover Documentation")
+    vim.schedule(function()
+      pcall(vim.keymap.del, "n", "K", { buffer = event.buf })
+    end)
     -- map('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
 
     map("<leader>ds", require("telescope.builtin").lsp_document_symbols, "[D]ocument [S]ymbols")
@@ -33,9 +37,11 @@ vim.api.nvim_create_autocmd("LspAttach", {
       -- Suppress the same roslyn.nvim cancellation bug for extract method
       local original_notify = vim.notify
       vim.notify = function(msg, level, opts)
-        if type(msg) == "string" and
-           msg:find("lsp_commands%.lua:72") and
-           msg:find("attempt to index local 'action'") then
+        if
+          type(msg) == "string"
+          and msg:find("lsp_commands%.lua:72")
+          and msg:find("attempt to index local 'action'")
+        then
           return
         end
         original_notify(msg, level, opts)
@@ -44,8 +50,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
       vim.lsp.buf.code_action({
         context = { only = { "refactor.extract" } },
         filter = function(action)
-          return action.title:match("[Ee]xtract.*[Mm]ethod") or
-                 action.title:match("[Ee]xtract.*[Ff]unction")
+          return action.title:match("[Ee]xtract.*[Mm]ethod") or action.title:match("[Ee]xtract.*[Ff]unction")
         end,
         apply = true,
       })
@@ -63,16 +68,11 @@ vim.api.nvim_create_autocmd("LspAttach", {
 
       vim.lsp.buf.code_action({
         filter = function(action)
-          return action.title and (
-            action.title:find("Introduce constant") or
-            action.title:find("Introduce variable")
-          )
+          return action.title and (action.title:find("Introduce constant") or action.title:find("Introduce variable"))
         end,
         apply = true,
       })
     end, "[C]ode [R]efactor Extract [C]onstant", { "n", "x" })
-
-
 
     map("<leader>ca", vim.lsp.buf.code_action, "[C]ode [A]ction", { "n", "x" })
 

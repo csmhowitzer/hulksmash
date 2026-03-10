@@ -3,9 +3,11 @@
 ---@field build_solution function Build the solution
 ---@field rebuild_solution function Rebuild the solution
 ---@field clean_solution function Clean the solution
+---@field restore_solution function Restore NuGet packages for the solution
 ---@field build_project function Build the current project
 ---@field rebuild_project function Rebuild the current project
 ---@field clean_project function Clean the current project
+---@field restore_project function Restore NuGet packages for the current project
 ---@field get_version_info function Get C# and .NET version information
 local M = {}
 
@@ -409,6 +411,39 @@ function M.clean_solution()
   end
 end
 
+---Restore NuGet packages for the solution
+function M.restore_solution()
+  local slnPath = utils.find_sln_root()
+  if slnPath then
+    -- Find the .sln file in the solution directory
+    local sln_files = vim.fs.find(function(name) return name:match("%.sln$") end, {
+      limit = 1,
+      type = "file",
+      path = slnPath
+    })
+
+    if #sln_files > 0 then
+      local sln_file = sln_files[1]
+      local sln_name = vim.fn.fnamemodify(sln_file, ":t:r") -- Get solution name without extension
+      local restoreCmd = { "dotnet", "restore", "--force-evaluate", sln_file }
+
+      executeCmd(restoreCmd, false, "Solution Restore (" .. sln_name .. ")", function(exit_code, duration, stdout_lines, stderr_lines)
+        -- Additional callback logic for restore
+        if exit_code == 0 then
+          vim.notify("Restore completed - NuGet packages regenerated", vim.log.levels.INFO, {
+            title = "Restore Summary",
+            timeout = 3000,
+          })
+        end
+      end)
+    else
+      vim.notify("No solution file found in " .. slnPath, vim.log.levels.WARN, { title = "C# Build" })
+    end
+  else
+    vim.notify("No solution directory found", vim.log.levels.WARN, { title = "C# Build" })
+  end
+end
+
 ---Build the current project
 function M.build_project()
   local projPath = utils.find_proj_root()
@@ -457,6 +492,25 @@ function M.clean_project()
       if exit_code == 0 then
         vim.notify("Project '" .. proj_name .. "' cleaned successfully", vim.log.levels.INFO, {
           title = "Project Clean Summary",
+          timeout = 3000,
+        })
+      end
+    end)
+  else
+    vim.notify("No project file found", vim.log.levels.WARN, { title = "C# Build" })
+  end
+end
+
+---Restore NuGet packages for the current project
+function M.restore_project()
+  local projPath = utils.find_proj_root()
+  if projPath then
+    local proj_name = vim.fn.fnamemodify(projPath, ":t:r") -- Get project name without extension
+    local projCmd = { "dotnet", "restore", "--force-evaluate", projPath }
+    executeCmd(projCmd, false, "Project Restore (" .. proj_name .. ")", function(exit_code, duration, stdout_lines, stderr_lines)
+      if exit_code == 0 then
+        vim.notify("Project '" .. proj_name .. "' restored successfully - NuGet packages regenerated", vim.log.levels.INFO, {
+          title = "Project Restore Summary",
           timeout = 3000,
         })
       end

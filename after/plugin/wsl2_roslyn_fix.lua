@@ -22,11 +22,55 @@ local roslyn_crash_recovery = {
   crash_count = 0,
   roslyn_is_healthy = true, -- Track if Roslyn is in a good state
   planned_detachment = false, -- Track if detachment is intentional (not a crash)
+  user_initiated_reload = false, -- Track if user manually ran :edit or :LspRestart
 }
+
+-- Track if we've shown inotify warning this session
+local inotify_warning_shown = false
 
 -- Use the smart notification utility for context-aware notifications
 local smart_notify_util = require('lib.smart_notify')
 local smart_notify = smart_notify_util.dotnet
+
+---Sanitize CRLF line endings in a buffer
+---This prevents Roslyn from seeing Windows-style line endings that cause crashes
+---@param bufnr number Buffer number to sanitize
+---@return boolean True if CRLF was found and removed
+local function sanitize_crlf(bufnr)
+  -- Check if buffer still exists and is valid
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return false
+  end
+
+  -- Check if buffer has CRLF line endings
+  local has_crlf = false
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+
+  for _, line in ipairs(lines) do
+    if line:match("\r$") then
+      has_crlf = true
+      break
+    end
+  end
+
+  if has_crlf then
+    -- Save cursor position
+    local cursor = vim.api.nvim_win_get_cursor(0)
+
+    -- Remove all carriage returns (silently, in insert mode)
+    vim.cmd([[silent! keepjumps %s/\r//ge]])
+
+    -- Restore cursor position
+    pcall(vim.api.nvim_win_set_cursor, 0, cursor)
+
+    -- Ensure Unix line endings
+    vim.bo[bufnr].fileformat = "unix"
+
+    return true
+  end
+
+  return false
+end
 
 ---Check if wslpath utility is available in the system PATH
 ---@return boolean available True if wslpath command is found and executable
@@ -90,6 +134,135 @@ local function detect_appropriate_runtime()
   end
 end
 
+---Check current inotify limit and warn if too low
+---Shows notification once per session if limit < 2048
+local function check_inotify_limit()
+  -- Only check once per session
+  if inotify_warning_shown then
+    return
+  end
+
+  -- Only check in WSL2
+  if not is_wsl2() then
+    return
+  end
+
+  -- Read current inotify limit
+  local handle = io.popen("cat /proc/sys/fs/inotify/max_user_instances 2>/dev/null")
+  if not handle then
+    return
+  end
+
+  local result = handle:read("*a")
+  handle:close()
+
+  local current_limit = tonumber(result)
+  if not current_limit then
+    return
+  end
+
+  -- Warn if limit is below recommended threshold
+  if current_limit < 2048 then
+    inotify_warning_shown = true
+
+    local message = string.format(
+      "⚠️ WSL2 inotify limit too low: %d (recommended: 8192)\n\n" ..
+      "This may cause Roslyn LSP to fail loading projects.\n\n" ..
+      "Fix commands:\n" ..
+      "  sudo sed -i '/fs.inotify.max_user_instances/d' /etc/sysctl.conf\n" ..
+      "  echo \"fs.inotify.max_user_instances=8192\" | sudo tee /etc/sysctl.d/99-inotify.conf\n" ..
+      "  sudo sysctl -p /etc/sysctl.d/99-inotify.conf\n\n" ..
+      "Then restart Neovim.",
+      current_limit
+    )
+
+    vim.notify(message, vim.log.levels.WARN, {
+      title = "WSL2 Roslyn Fix",
+      timeout = 10000, -- Show for 10 seconds
+    })
+  end
+end
+
+---Clean Windows-generated build artifacts that contain invalid WSL2 paths
+---@param solution_path string Path to the solution file
+local function clean_windows_build_artifacts(solution_path)
+  if not solution_path or solution_path == "" then
+    return
+  end
+
+  -- Get solution directory
+  local solution_dir = vim.fn.fnamemodify(solution_path, ":h")
+
+  -- Find all project.assets.json files in the solution
+  local find_cmd = string.format(
+    "find '%s' -type f -name 'project.assets.json' 2>/dev/null",
+    solution_dir
+  )
+
+  local handle = io.popen(find_cmd)
+  if not handle then
+    return
+  end
+
+  local assets_files = {}
+  for file in handle:lines() do
+    table.insert(assets_files, file)
+  end
+  handle:close()
+
+  -- Check if any assets files contain Windows fallback paths
+  local needs_cleanup = false
+  for _, file in ipairs(assets_files) do
+    local f = io.open(file, "r")
+    if f then
+      local content = f:read("*all")
+      f:close()
+      if content:match("C:\\\\Program Files") then
+        needs_cleanup = true
+        break
+      end
+    end
+  end
+
+  if needs_cleanup then
+    -- Only show detection message in debug mode
+    if vim.g.wsl2_roslyn_debug then
+      smart_notify(
+        "Detected Windows build artifacts - running dotnet restore to regenerate with WSL2 paths...",
+        vim.log.levels.INFO,
+        { title = "WSL2 Roslyn Fix" }
+      )
+    end
+
+    -- Try to use cs_build.restore_solution if available, otherwise fall back to system call
+    local cs_build_ok, cs_build = pcall(require, "lib.cs_build")
+
+    if cs_build_ok and cs_build.restore_solution then
+      -- Use the cs_build module for consistent restore behavior
+      cs_build.restore_solution()
+    else
+      -- Fallback: Run dotnet restore directly via system call
+      -- This is the key - just deleting obj/bin isn't enough, we need NuGet to regenerate
+      local restore_cmd = string.format("cd '%s' && dotnet restore --force-evaluate 2>&1", solution_dir)
+      local result = vim.fn.system(restore_cmd)
+
+      if vim.v.shell_error == 0 then
+        smart_notify(
+          "Successfully regenerated NuGet assets with WSL2 paths",
+          vim.log.levels.INFO,
+          { title = "WSL2 Roslyn Fix" }
+        )
+      else
+        smart_notify(
+          "dotnet restore failed - you may need to run it manually\n" .. result,
+          vim.log.levels.WARN,
+          { title = "WSL2 Roslyn Fix" }
+        )
+      end
+    end
+  end
+end
+
 ---Set WSL2-specific environment variables for .NET/NuGet compatibility
 ---Forces appropriate runtime behavior to avoid package dependency issues
 local function setup_wsl2_dotnet_env()
@@ -139,6 +312,39 @@ local function validate_wsl2_environment()
     )
     return false
   end
+
+  -- Clean Windows build artifacts when Roslyn attaches
+  vim.api.nvim_create_autocmd("LspAttach", {
+    group = vim.api.nvim_create_augroup("wsl2_roslyn_cleanup", { clear = true }),
+    callback = function(args)
+      local client = vim.lsp.get_client_by_id(args.data.client_id)
+      if not client or client.name ~= "roslyn" then
+        return
+      end
+
+      -- Get solution path from Roslyn's root_dir
+      local root_dir = client.config.root_dir
+      if not root_dir then
+        return
+      end
+
+      -- Find solution file in root directory
+      local handle = io.popen(string.format("find '%s' -maxdepth 1 -name '*.sln' 2>/dev/null", root_dir))
+      if not handle then
+        return
+      end
+
+      local solution_file = handle:read("*l")
+      handle:close()
+
+      if solution_file and solution_file ~= "" then
+        clean_windows_build_artifacts(solution_file)
+      end
+
+      -- Check inotify limit on first Roslyn attach
+      check_inotify_limit()
+    end,
+  })
 
   return true
 end
@@ -462,6 +668,12 @@ local function setup_roslyn_crash_recovery()
         return
       end
 
+      -- If user manually ran :edit or :LspRestart, don't treat as crash
+      if roslyn_crash_recovery.user_initiated_reload then
+        roslyn_crash_recovery.user_initiated_reload = false
+        return
+      end
+
       -- Mark Roslyn as unhealthy (actual crash)
       roslyn_crash_recovery.roslyn_is_healthy = false
 
@@ -473,7 +685,27 @@ local function setup_roslyn_crash_recovery()
       if time_since_last_detach < 5000 then
         roslyn_crash_recovery.crash_count = roslyn_crash_recovery.crash_count + 1
 
+        -- SAFEGUARD: Stop after 5 crashes to prevent infinite loops
+        if roslyn_crash_recovery.crash_count > 5 then
+          smart_notify(
+            "Roslyn crashed too many times. Auto-recovery disabled. Manually restart with :LspRestart roslyn",
+            vim.log.levels.ERROR,
+            { title = "Roslyn Crash Recovery" }
+          )
+          roslyn_crash_recovery.auto_reload_enabled = false
+          return
+        end
+
         if roslyn_crash_recovery.auto_reload_enabled then
+          -- Validate buffer before attempting reload
+          local bufnr = args.buf
+          local bufname = vim.api.nvim_buf_get_name(bufnr)
+
+          -- Skip if buffer is invalid, unnamed, or special
+          if not vim.api.nvim_buf_is_valid(bufnr) or bufname == "" or bufname:match("^%[.*%]$") then
+            return
+          end
+
           smart_notify(
             string.format("Roslyn LSP crashed (count: %d). Auto-reloading buffer...", roslyn_crash_recovery.crash_count),
             vim.log.levels.WARN,
@@ -482,12 +714,16 @@ local function setup_roslyn_crash_recovery()
 
           -- Reload buffer after a short delay to let LSP cleanup
           vim.defer_fn(function()
-            vim.cmd("edit")
+            -- Double-check buffer is still valid before reloading
+            if vim.api.nvim_buf_is_valid(bufnr) then
+              pcall(vim.cmd, "edit")
+            end
           end, 500)
         end
       else
         -- Reset crash count if it's been more than 5 seconds
         roslyn_crash_recovery.crash_count = 0
+        roslyn_crash_recovery.auto_reload_enabled = true -- Re-enable auto-recovery
       end
 
       roslyn_crash_recovery.last_detach_time = current_time
@@ -504,15 +740,37 @@ local function setup_roslyn_crash_recovery()
         roslyn_crash_recovery.roslyn_is_healthy = true
         -- Clear planned_detachment flag when Roslyn successfully reattaches
         roslyn_crash_recovery.planned_detachment = false
+        -- Clear user_initiated_reload flag when Roslyn successfully reattaches
+        roslyn_crash_recovery.user_initiated_reload = false
       end
     end,
   })
 
-  -- Sanitize line endings in C# files IMMEDIATELY when text changes in insert mode
-  -- This prevents Roslyn from ever seeing the ^M characters
+  -- Intercept user-initiated :edit commands to prevent crash recovery loop
+  vim.api.nvim_create_autocmd("BufReadPre", {
+    group = vim.api.nvim_create_augroup("roslyn_user_reload_detection", { clear = true }),
+    pattern = "*.cs",
+    callback = function()
+      -- Mark as user-initiated reload to prevent crash recovery from triggering
+      roslyn_crash_recovery.user_initiated_reload = true
+    end,
+  })
+
+  -- Sanitize IMMEDIATELY when entering insert mode
+  -- This catches any existing CRLF before user starts typing
+  vim.api.nvim_create_autocmd("InsertEnter", {
+    group = vim.api.nvim_create_augroup("csharp_line_ending_fix", { clear = true }),
+    pattern = "*.cs",
+    callback = function(args)
+      sanitize_crlf(args.buf)
+    end,
+  })
+
+  -- Sanitize during typing with debounce to avoid running on every keystroke
+  -- This catches CRLF introduced by Augment inline suggestions
   local sanitize_debounce_timer = nil
   vim.api.nvim_create_autocmd("TextChangedI", {
-    group = vim.api.nvim_create_augroup("csharp_line_ending_fix", { clear = true }),
+    group = vim.api.nvim_create_augroup("csharp_line_ending_fix", { clear = false }), -- Don't clear, InsertEnter already created it
     pattern = "*.cs",
     callback = function(args)
       -- Debounce to avoid running on every keystroke
@@ -521,35 +779,7 @@ local function setup_roslyn_crash_recovery()
       end
 
       sanitize_debounce_timer = vim.fn.timer_start(100, function()
-        -- Check if buffer still exists and is valid
-        if not vim.api.nvim_buf_is_valid(args.buf) then
-          return
-        end
-
-        -- Check if buffer has CRLF line endings
-        local has_crlf = false
-        local lines = vim.api.nvim_buf_get_lines(args.buf, 0, -1, false)
-
-        for _, line in ipairs(lines) do
-          if line:match("\r$") then
-            has_crlf = true
-            break
-          end
-        end
-
-        if has_crlf then
-          -- Save cursor position
-          local cursor = vim.api.nvim_win_get_cursor(0)
-
-          -- Remove all carriage returns (silently, in insert mode)
-          vim.cmd([[silent! keepjumps %s/\r//ge]])
-
-          -- Restore cursor position
-          pcall(vim.api.nvim_win_set_cursor, 0, cursor)
-
-          -- Ensure Unix line endings
-          vim.bo.fileformat = "unix"
-        end
+        sanitize_crlf(args.buf)
       end)
     end,
   })
@@ -592,6 +822,59 @@ end
 -- Auto-setup when this file is loaded
 setup_wsl2_fixes()
 setup_roslyn_crash_recovery()
+
+---Resync Roslyn LSP buffer state without full LSP restart
+---This is useful when Roslyn is in a degraded state (syntax highlighting broken, hover/goto def not working)
+---
+---Order of operations (critical for safety):
+---1. Sanitize CRLF first (clean the buffer)
+---2. Save the cleaned buffer (write clean content to disk)
+---3. Reload buffer (resync Roslyn with clean content)
+vim.api.nvim_create_user_command("RoslynResync", function()
+  local bufnr = vim.api.nvim_get_current_buf()
+
+  -- Check if buffer has a filename (not a scratch buffer)
+  local bufname = vim.api.nvim_buf_get_name(bufnr)
+  if bufname == "" then
+    smart_notify("Cannot resync: buffer has no filename", vim.log.levels.ERROR, { title = "Roslyn Resync" })
+    return
+  end
+
+  -- Check if buffer is modifiable
+  if not vim.bo[bufnr].modifiable then
+    smart_notify("Cannot resync: buffer is not modifiable", vim.log.levels.ERROR, { title = "Roslyn Resync" })
+    return
+  end
+
+  -- Step 1: Sanitize CRLF first (before saving!)
+  -- This ensures we save clean content, not corrupted content
+  sanitize_crlf(bufnr)
+
+  -- Step 2: Save the buffer (now with clean content)
+  local save_ok, save_err = pcall(vim.cmd, "write")
+  if not save_ok then
+    smart_notify(
+      string.format("Failed to save buffer: %s", save_err),
+      vim.log.levels.ERROR,
+      { title = "Roslyn Resync" }
+    )
+    return
+  end
+
+  -- Step 3: Reload buffer to resync Roslyn
+  -- This sends textDocument/didClose + didOpen to Roslyn with full buffer content
+  local reload_ok, reload_err = pcall(vim.cmd, "edit")
+  if not reload_ok then
+    smart_notify(
+      string.format("Failed to reload buffer: %s", reload_err),
+      vim.log.levels.ERROR,
+      { title = "Roslyn Resync" }
+    )
+    return
+  end
+
+  smart_notify("Roslyn buffer state resynced", vim.log.levels.INFO, { title = "Roslyn Resync" })
+end, { desc = "Resync Roslyn LSP buffer state (sanitize CRLF, save, reload)" })
 
 -- Expose local functions for testing
 M._check_wslpath_available = check_wslpath_available

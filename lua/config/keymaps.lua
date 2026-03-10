@@ -13,6 +13,11 @@ vim.keymap.del("n", "<leader>qS", { desc = "Select Session" })
 vim.keymap.del("n", "<leader>ql", { desc = "Restore Last Session" })
 vim.keymap.del("n", "<leader>qd", { desc = "Don't Save Current Session" })
 
+vim.keymap.del("n", "<C-h>", { desc = "Move to Left Window" })
+vim.keymap.del("n", "<C-j>", { desc = "Move to Lower Window" })
+vim.keymap.del("n", "<C-k>", { desc = "Move to Upper Window" })
+vim.keymap.del("n", "<C-l>", { desc = "Move to Right Window" })
+
 -- Treesitter
 vim.keymap.set("n", "<leader>ii", "<cmd>Inspect<CR>", { desc = "Inspect Treesitter Node" })
 
@@ -76,7 +81,7 @@ vim.keymap.set(
 
 vim.keymap.set("n", "<leader><leader>x", "<cmd>source %<CR>", { desc = "[S]ource file" })
 
--- -- Move to window using the <ctrl> hjkl keys
+-- -- Move to window using the <shift> hjkl keys
 vim.keymap.set("n", "<S-h>", "<C-w>h", { desc = "Go to Left Window" })
 vim.keymap.set("n", "<S-j>", "<C-w>j", { desc = "Go to Lower Window" })
 vim.keymap.set("n", "<S-k>", "<C-w>k", { desc = "Go to Upper Window" })

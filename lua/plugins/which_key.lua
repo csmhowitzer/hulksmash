@@ -10,6 +10,7 @@ return {
         {
           mode = { "n", "v" },
           { "<leader><tab>", group = "tabs" },
+          { "<leader><leader>", group = "harpoon", icon = { icon = "󰛢", color = "orange" } },
           { "<leader>c", group = "code" },
           { "<leader>d", group = "debug" },
           { "<leader>dp", group = "profiler" },
@@ -20,6 +21,7 @@ return {
           { "<leader>i", group = "Treesitter [I]nspect" },
           { "<leader>p", group = "oil explorer", icon = { icon = "", color = "yellow" } },
           { "<leader>cr", group = "code refactor" },
+          { "<leader>r", group = "roslyn" },
           { "<leader>a", group = "augment ai" },
           { "<leader>y", group = "quit session (persistance)" },
           { "<leader>t", group = "custom transparency", icon = { icon = "", color = "cyan" } },

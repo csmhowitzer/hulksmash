@@ -59,7 +59,7 @@ local function get_roslyn_config()
       -- NEW: Ultra-aggressive minimal loading
       ["csharp|workspace"] = {
         dotnet_enable_package_restore_on_open = false, -- NEW: Don't restore packages on workspace open
-        dotnet_enable_reference_loading = false, -- NEW: Defer reference loading
+        dotnet_enable_reference_loading = true, -- REVERTED: Need this for accurate reference resolution
       },
     },
   }
@@ -68,12 +68,12 @@ local function get_roslyn_config()
   if is_wsl2() then
     -- Enhanced settings for WSL2 environment
     config.settings["csharp|inlay_hints"] = {
-      csharp_enable_inlay_hints_for_types = true,
-      csharp_enable_inlay_hints_for_parameters = true,
-      dotnet_enable_inlay_hints_for_literal_parameters = true,
-      dotnet_enable_inlay_hints_for_indexer_parameters = true,
-      dotnet_enable_inlay_hints_for_object_creation_parameters = true,
-      dotnet_enable_inlay_hints_for_other_parameters = true,
+      csharp_enable_inlay_hints_for_types = false,
+      csharp_enable_inlay_hints_for_parameters = false,
+      dotnet_enable_inlay_hints_for_literal_parameters = false,
+      dotnet_enable_inlay_hints_for_indexer_parameters = false,
+      dotnet_enable_inlay_hints_for_object_creation_parameters = false,
+      dotnet_enable_inlay_hints_for_other_parameters = false,
       dotnet_suppress_inlay_hints_for_parameters_that_differ_only_by_suffix = true,
       dotnet_suppress_inlay_hints_for_parameters_that_match_method_intent = true,
       dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name = true,

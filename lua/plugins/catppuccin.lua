@@ -37,6 +37,18 @@ return {
           return {
             Comment = { fg = "#FF0000" },
             DiagnosticUnnecessary = { fg = "#dd7878" },
+            ["@string.yaml"] = { fg = "#a6e3a1" }, -- green for strings
+            ["@field.yaml"] = { fg = "#89b4fa" }, -- blue for keys
+            ["@number.yaml"] = { fg = "#fab387" }, -- orange for numbers
+            ["@boolean.yaml"] = { fg = "#f38ba8" }, -- red for booleans
+            ["@punctuation.delimiter.yaml"] = { fg = "#89b4fa" }, -- blue for colons, commas
+            ["@punctuation.special.yaml"] = { fg = "#89b4fa" }, -- blue for dashes
+            ["@text.literal.yaml"] = { fg = "#a6e3a1" }, -- green for string literals
+            ["@text.uri.yaml"] = { fg = "#89b4fa" }, -- blue for URLs
+            ["@text.reference.yaml"] = { fg = "#89b4fa" }, -- blue for references
+            ["@text.emphasis.yaml"] = { fg = "#a6e3a1", bold = true }, -- bold green for emphasis
+            ["@text.strong.yaml"] = { fg = "#a6e3a1", bold = true }, -- bold green for strong
+            ["@text.title.yaml"] = { fg = "#89b4fa", bold = true }, -- blue for titles
           }
         end,
       })
