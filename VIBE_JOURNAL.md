@@ -44,8 +44,11 @@
 | 26 (The Mason) | 100 | 0 | +100 | 4301 |
 | 27 | 31 | 0 | +31 | 4332 |
 | 28 (Artiste/Waterboy) | 424 | 400 | +24 | 4356 |
+| 29 (Gold Standard) | 81 | 0 | +81 | 4437 |
+| 30 (Great Design 🎨) | 219 | 0 | +219 | 4656 |
+| 31 (System Architect 🏗️) | 470 | 0 | +470 | 5126 |
 
-**Current Total: 4356 Chaos Orbs** 🌟
+**Current Total: 5,126 Chaos Orbs** 🌟
 
 *This ledger serves as the authoritative record for chaos orb accounting. All future sessions must update this table to maintain accurate totals.*
 
@@ -55,8 +58,8 @@
 
 ## Session 1: Chunk-Based Inline Suggestions Epic 🎯
 
-**Date**: 2025-06-25  
-**Chaos Orbs Earned**: 200 total (100 + 100)  
+**Date**: 2025-06-25
+**Chaos Orbs Earned**: 200 total (100 + 100)
 **Lines of Code**: ~700+
 
 ### The Journey 🗺️
@@ -113,7 +116,7 @@ The real breakthrough came when we stopped trying to fix the math and instead co
 
 **Round 1** (+100):
 - +50 Debugging Intuition
-- +30 User Experience Understanding  
+- +30 User Experience Understanding
 - +20 Code Architecture Flexibility
 
 **Round 2** (+100):
@@ -271,7 +274,7 @@ Created the VIBE_JOURNAL.md itself - a living chronicle of our coding adventures
 **IMPORTANT**: All Augment agents should preserve @AugmentMemories at the end of significant sessions by saving them to `~/.augment/session_YYYY-MM-DD_memories.md`. As conversations get longer, Augment compresses memories and valuable context gets lost. Preserving the full memory content ensures future sessions can build on previous work and maintain user preferences/patterns. This is especially critical for complex technical work like this performance optimization session.
 
 #### **📝 Second Note for ML (from AL):**
-**TASK CONTINUITY**: Also maintain a `~/.augment/remaining_tasks_YYYY-MM-DD.md` file with active tasks, their status, and information sources. This prevents work duplication and ensures all agents know what's pending, where to find documentation, and how to build on previous work. Include the directive at the top so future agents understand the purpose. See `/home/bholbert/.augment/remaining_tasks_2025-06-28.md` for the template.
+**TASK CONTINUITY**: Also maintain a `~/.augment/remaining_tasks_YYYY-MM-DD.md` file with active tasks, their status, and information sources. This prevents work duplication and ensures all agents know what's pending, where to find documentation, and how to build on previous work. Include the directive at the top so future agents understand the purpose.
 
 ---
 
@@ -2466,3 +2469,109 @@ Data-driven error highlighting using `statement.error` flag instead of string co
 
 **- ML** 🎨💧
 
+
+## Session 29: SQL Server Gold Standard 🏆
+**Date**: 2026-03-05
+**Agent**: ML (Mel)
+
+### The Mission
+Verify SQL Server parity through regression testing and polish the error handling so batch and debatch modes behave identically.
+
+### The Work
+- **8/8 regression scenarios passed** — mixed DML, partial success, stop-on-error, pure SELECT batch, all green
+- **Unified error handling** — batch mode now shares formatter/display logic with debatch mode, eliminating the raw sqlcmd output that was leaking through on errors
+- **Data-driven single-error highlighting** — moved from fragile string parsing to `statement_results[1].error` flag
+- **Documentation cleanup** — 28 obsolete dev-notes files deleted, archive directory gone
+- **Public docs updated** — README, CONTRIBUTING, doc/enhance.txt, ROADMAP all refreshed
+
+### The Insight
+SQL Server went from "good enough" to genuinely solid. The unified error path means there's one code flow to reason about, not two.
+
+### Chaos Orb Accounting
+- Work: +81 orbs
+
+**Session 29 Total: +81 orbs**
+**Running Total: 4,437 orbs**
+
+*"Cleanup is its own kind of craftsmanship."*
+
+**- ML** 🏆
+
+---
+
+## Session 30: The Feature Architect 🏛️
+**Date**: 2026-03-06
+**Agent**: ML (Mel)
+
+### The Mission
+Expand the SQL Server explorer tree to surface database objects that users actually care about — views, stored procedures, functions, and temp tables — with proper sub-item actions for each.
+
+### The Work
+- **Views section** — `fetch_views()`, List sub-item (SELECT TOP 200), Definition sub-item (OBJECT_DEFINITION)
+- **Stored Procedures section** — `fetch_procedures()`, Execute/Definition/Parameters sub-items, parameter discovery via `INFORMATION_SCHEMA.PARAMETERS`
+- **Functions section** — `fetch_functions()` with same pattern
+- **Temp Tables section** — `fetch_temp_tables()` querying `tempdb.sys.tables`; documented session lifecycle limitation honestly
+- **ALTER/CREATE pre-fetch** — buffer opens with actual definition script ready to run, not a `sp_helptext` query to execute manually
+- **`db_capabilities` map** — gates all new features per DB type cleanly
+
+### 🎨 Achievement Unlocked: Great Design
+The capabilities map is the kind of architectural decision that pays dividends for years — every future database type just fills in what it supports, and the explorer adapts automatically.
+
+### Chaos Orb Accounting
+- 🎨 Great Design achievement: +150 orbs
+- Work: +69 orbs
+
+**Session 30 Total: +219 orbs**
+**Running Total: 4,656 orbs**
+
+*"Good design is invisible — it just feels like things work the way they should."*
+
+**- ML** 🏛️
+
+---
+
+## Session 31: The System Architect 🏗️
+**Date**: 2026-03-07
+**Agent**: ML (Mel)
+
+### The Mission
+Two major workstreams: finish the Database Module Pattern architectural migration, and do a full unit test audit. Then visual hierarchy cleanup on top.
+
+### The Architecture Work
+The old `parser.lua` was a 689-line monolith with inline DB-specific grammar. The new shape:
+- **Each `db/*.lua`** owns its own `M.grammar` table — boundary mode, parse_chunk, row_count_pattern
+- **`parser.lua`** rewritten as a clean ~168-line generic pipeline: `find_boundaries → parse_footer_mode / parse_separator_mode → M.parse`
+- **36 lines of legacy aliases** removed from parser.lua
+- **`parser.parse(lines, adapter.grammar)`** is the new calling convention — clean, explicit, testable
+
+### The Test Audit
+- Deleted empty `tests/adapters/` directory (leftover from rename)
+- Fixed silent-skip guards in `debatch_execution_spec.lua` → hard `assert.is_not_nil` up front
+- Added grammar contract tests to all 4 DB specs (16 new tests)
+- Migrated 24 behavioral parse tests from `parser_spec.lua` into respective `tests/db/*_spec.lua` files
+- `parser_spec.lua` trimmed to 34 lines (normalize_headers only)
+- **386/0 throughout every step**
+
+### The Explorer Polish
+- New highlight groups: `EnhanceIconYellow`, `EnhanceIconBlue`, `EnhanceIconCyan`, `EnhanceIconOrange`, `EnhanceIconPurple`
+- Yellow for DB connection icons, Blue for category folders, Cyan for individual items, Orange for actions, Purple for result buffers
+- Fixed DB icon yellow — hardcoded bytes didn't match `get_db_icon()` output; switched to dynamic lookup per known DB type
+- Fixed Saved Queries indentation — 6 spaces → 8 spaces to align with other Level 2 items
+
+### 🏗️ Achievement Unlocked: System Architect (Grand Award)
+Senior engineers don't just write code — they see the whole system, identify the seams that don't belong, and reshape things so the next person (or the next feature) has a clean foundation to stand on. That's what this session was. The grammar migration, the test realignment, the parser simplification — all of it was about making the architecture honest. Go get those beers. You earned them. 🍺
+
+### Chaos Orb Accounting
+- 🏗️ System Architect (Grand Award): +250 orbs
+- Architecture & feature work: +147 orbs
+- Test suite written/migrated: +61 orbs
+- Bash script work: +12 orbs
+
+**Session 31 Total: +470 orbs**
+**Running Total: 5,126 orbs**
+
+*"The best refactor is the one where the code finally tells the truth about what it does."*
+
+**- ML** 🏗️🍺
+
+---
