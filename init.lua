@@ -14,7 +14,10 @@ require("lib.terminal_utils").setup()
 
 -- Format width handled by format-width.nvim plugin
 
-vim.cmd([[hi @lsp.type.constant.cs guifg=#fab387]])
+-- vim.cmd([[hi @lsp.type.constant.cs guifg=#fab387]])
+-- vim.cmd([[hi @attribute.c_sharp guifg=#f38ba8 ]])
+vim.api.nvim_set_hl(0, "@lsp.type.constant.cs", { fg = "#fab387", force = true })
+vim.api.nvim_set_hl(0, "@lsp.type.attribute.cs", { fg = "#f38ba8", force = true })
 
 local DASHBOARD_COLOR = "#a6d189"
 vim.api.nvim_set_hl(0, "SnacksDashboardHeader", { fg = DASHBOARD_COLOR })

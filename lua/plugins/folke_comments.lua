@@ -16,6 +16,8 @@ return {
         STEP3 = { icon = "3", color = "info" },
         STEP4 = { icon = "4", color = "info" },
         STEP5 = { icon = "5", color = "info" },
+        Q = { icon = "?", color = "#cba6f7", alt = { "QUESTION" } },
+        A = { icon = "!", color = "#99d1db", alt = { "ANSWER" } },
       },
     },
   },

@@ -6,6 +6,7 @@ return {
     opts = function(_, opts)
       vim.list_extend(opts.ensure_installed, {
         "yaml",
+        "c_sharp",
       })
     end,
   },
