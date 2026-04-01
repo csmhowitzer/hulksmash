@@ -62,35 +62,46 @@ return {
             -- ["@lsp.type.attribute.cs"] = { fg = "#4CCAE1" },
             -- ["@lsp.type.interface.cs"] = { fg = "#89dceb" },
             -- ["@lsp.typemod.field.static.cs"] = { fg = "#74c7ec" },
-            -- c-sharp
-            ["@lsp.type.class.cs"] = { fg = "#e5c07b" }, -- yellow for classes
-            ["@lsp.type.struct.cs"] = { fg = "#e5c07b" }, -- yellow for structs
-            ["@lsp.type.enum.cs"] = { fg = "#e5c07b" }, -- yellow for enums
-            ["@lsp.type.interface.cs"] = { fg = "#56b6c2" }, -- cyan for interfaces
-            ["@lsp.type.delegate.cs"] = { fg = "#e5c07b" }, -- yellow for delegates (type-like)
-            ["@lsp.type.namespace.cs"] = { fg = "#e5c07b" }, -- yellow for namespaces
-            ["@lsp.type.typeParameter.cs"] = { fg = "#e5c07b", italic = true }, -- yellow italic for generics <T>
-            ["@lsp.type.variable.cs"] = { fg = "#e06c75" }, -- red for variables
-            ["@lsp.type.field.cs"] = { fg = "#e06c75" }, -- red for fields
-            ["@lsp.type.property.cs"] = { fg = "#e06c75" }, -- red for properties
-            ["@lsp.type.event.cs"] = { fg = "#e06c75" }, -- red for events
-            ["@lsp.type.parameter.cs"] = { fg = "#abb2bf", italic = true }, -- grey italic for parameters
-            ["@lsp.type.method.cs"] = { fg = "#61afef" }, -- blue for methods
-            ["@lsp.type.extensionMethod.cs"] = { fg = "#61afef" }, -- blue for extension methods
-            ["@lsp.type.enumMember.cs"] = { fg = "#56b6c2" }, -- cyan for enum members
-            ["@lsp.type.constant.cs"] = { fg = "#d19a66" }, -- orange for constants
-            ["@lsp.type.attribute.cs"] = { fg = "#d19a66" }, -- orange for attributes [Attribute]
-            ["@lsp.type.keyword.cs"] = { fg = "#c678dd" }, -- purple for keywords
-            -- type modifiers
-            ["@lsp.typemod.field.static.cs"] = { fg = "#e5c07b" }, -- yellow for static fields
-            ["@lsp.typemod.method.static.cs"] = { fg = "#61afef" }, -- blue for static methods
-            ["@lsp.typemod.variable.readonly.cs"] = { fg = "#d19a66" }, -- orange for readonly vars
-            ["@lsp.typemod.property.readonly.cs"] = { fg = "#d19a66" }, -- orange for readonly properties
-            -- treesitter c_sharp groups (from c_sharp parser)
-            ["@variable.c_sharp"] = { fg = "#e06c75" }, -- red for variables
-            ["@variable.member.c_sharp"] = { fg = "#e06c75" }, -- red for member access
-            ["@function.method.call.c_sharp"] = { fg = "#61afef" }, -- blue for method calls
-            ["@type.c_sharp"] = { fg = "#e5c07b" }, -- yellow for types
+            -- c-sharp — Tier 1: Class, Struct (Mocha Yellow, pastel)
+            ["@lsp.type.class.cs"] = { fg = "#f9e2af" },
+            ["@lsp.type.struct.cs"] = { fg = "#f9e2af" },
+            ["@lsp.type.delegate.cs"] = { fg = "#f9e2af" },
+            ["@lsp.type.typeParameter.cs"] = { fg = "#f9e2af", italic = true },
+            -- c-sharp — Tier 1c: Namespace (Mauve)
+            ["@lsp.type.namespace.cs"] = { fg = "#cba6f7" },
+            -- c-sharp — Tier 1b: Interface (Flamingo), Enum (Frappé Sapphire), Attribute (Orange)
+            ["@lsp.type.interface.cs"] = { fg = "#f2cdcd" },
+            ["@lsp.type.enum.cs"] = { fg = "#85c1dc" },
+            ["@lsp.type.attribute.cs"] = { fg = "#d19a66" },
+            -- c-sharp — Electric: Constants (Latte Mauve, bold)
+            ["@lsp.type.constant.cs"] = { fg = "#8839ef", bold = true },
+            ["@lsp.typemod.variable.readonly.cs"] = { fg = "#8839ef", bold = true },
+            ["@lsp.typemod.property.readonly.cs"] = { fg = "#8839ef", bold = true },
+            -- c-sharp — Tier 2: Methods (Orange), Properties/Fields (Yellow)
+            ["@lsp.type.method.cs"] = { fg = "#d19a66" },
+            ["@lsp.type.extensionMethod.cs"] = { fg = "#d19a66" },
+            ["@lsp.type.property.cs"] = { fg = "#e5c07b" },
+            ["@lsp.type.field.cs"] = { fg = "#e5c07b" },
+            ["@lsp.type.event.cs"] = { fg = "#e5c07b" },
+            -- c-sharp — Tier 3: Enum Members, Statics (Peach)
+            ["@lsp.type.enumMember.cs"] = { fg = "#fab387" },
+            ["@lsp.typemod.field.static.cs"] = { fg = "#fab387" },
+            ["@lsp.typemod.method.static.cs"] = { fg = "#fab387" },
+            -- c-sharp — Tier 4: Parameters (Red italic), Variables (Lavender)
+            ["@lsp.type.parameter.cs"] = { fg = "#f38ba8", italic = true },
+            ["@lsp.type.variable.cs"] = { fg = "#b4befe" },
+            -- c-sharp — Tier 5: Keywords (Latte Mauve)
+            ["@lsp.type.keyword.cs"] = { fg = "#8839ef" },
+            -- c-sharp — Treesitter overrides
+            ["@attribute.c_sharp"] = { fg = "#d19a66" },           -- attributes override LSP class
+            ["@type.builtin.c_sharp"] = { fg = "#cba6f7" },        -- predefined types (Tier 5b, keyword family)
+            ["@variable.c_sharp"] = { fg = "#b4befe" },
+            ["@variable.member.c_sharp"] = { fg = "#e5c07b" },
+            ["@function.method.call.c_sharp"] = { fg = "#d19a66" },
+            ["@type.c_sharp"] = { fg = "#f9e2af" },
+            ["@operator.c_sharp"] = { fg = "#89dceb" },
+            ["@punctuation.delimiter.c_sharp"] = { fg = "#89dceb" },
+            ["@punctuation.bracket.c_sharp"] = { fg = "#89dceb" }
           }
         end,
       })
