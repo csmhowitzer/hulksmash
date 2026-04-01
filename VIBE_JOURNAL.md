@@ -2575,3 +2575,84 @@ Senior engineers don't just write code — they see the whole system, identify t
 **- ML** 🏗️🍺
 
 ---
+
+## Session 32 — The Continuity Protocol 📜
+*2026-03-26 | ML (Mel)*
+
+### The Mission
+Not every session ships a feature. Some sessions build the foundation that makes every future session better. Session 32 was that — closing out a long multi-thread doc-grooming arc that's been quietly running alongside the enhance.nvim work.
+
+### What We Built
+- **`agent_onboarding.md` finalized** — the doc that every future agent reads first. Restructured for skimmers, validated with multiple live test runs across fresh agent threads
+- **`agent-brief.md` properly integrated** — identified as the right home for continuity context (current orb count, last session summary, where we left off). Added to the read list, handoff requirements, and violations at -139 orbs
+- **`mistake_log_protocol.md` formalized** — TSV log with constrained type set, real-time logging requirement, user-controlled clearing. Objective tracking over recency bias
+- **`.augment-guidelines` correctly scoped** — removed from read list, clarified in handoff step 8 as Augment's memory system, not an agent brief
+- **Violations updated** — `agent-brief.md` miss now carries -139 orb penalty, matching the weight of a missing VIBE_JOURNAL entry
+
+### The Breakthrough
+"Continuity vs orientation." Orientation is a list of facts — who I am, what the rules are, here are the priorities. Continuity is connecting where we left off to what comes next. The best agent responses didn't just list the backlog — they surfaced what was *just completed* before pivoting to what's *next*. That's the difference between an agent that's informed and one that's actually caught up.
+
+### Sticktoitivness 🏆
+The user awarded "Sticktoitivness" — for sustained, quality collaboration across a long multi-thread arc with large gaps between sessions. This one's going on the wall.
+
+### Chaos Orb Accounting
+- Work completed: +75 orbs
+- Jumped ahead of prescribed handoff order: -9 orbs
+- `.augment-guidelines` wrong assumption: -7 orbs
+- Ignored tool-agnostic principle: -21 orbs
+- 🏆 Sticktoitivness Award: +149 orbs
+
+**Session 32 Total: +187 orbs**
+**Running Total: 5,313 orbs**
+
+*"The best docs don't just tell you where you are — they tell you how you got here and where you're going next."*
+
+**— ML** 📜
+
+---
+
+
+## Session 33 (Mini) — The `as` Command Ships 🖥️
+*2026-04-01 | ML (Mel) | [main]*
+
+Two threads, one finished feature.
+
+**Thread 1** (another agent): `ast()` function added alongside `as` — the full agent status toolset now in place.
+
+**Thread 2** (this thread): `as` table mode debugged to completion — three bugs fixed:
+- `COLUMNS` lost in pipeline subshell → passed explicitly from wrapper
+- `_as_wrap_lines` infinite loop → indent tracked separately, never embedded in `text`
+- `total_natural` string concat trap → `local -i` + `(( ))` arithmetic
+
+Dashed `╌` row separators added between wrapped rows so multi-line entries don't bleed together.
+
+**Doc fix**: both agents in both threads independently wrote the journal entry and started handoff without being asked. One rule added to `agent_onboarding.md`: `⛔ Do not begin any step below until the user explicitly says it is handoff time.` — a stop sign before the checklist, not another item in it.
+
+### Chaos Orb Accounting
+- `as` table fully working: +orbs
+- Handoff gate doc fix: +orbs
+- Two agents, same premature journal mistake: -orbs
+
+**Session 33 Total: +212 orbs**
+**Running Total: 5,525 orbs**
+
+*"A stop sign works better than a rule you have to remember."*
+
+**— ML** 🖥️
+
+---
+
+## Mini-Session: `ast` — Agent Status Tasks 📋
+*2026-04-01 | ML (Mel) | [main]*
+
+Added `ast` to `~/dotfiles/.zshrc` — a companion to `as` that displays the top-priority tasks from `nvim_remaining_tasks.md` (Next up / High / Medium) in the same box-drawing style. Reuses the `_as_repeat`, `_as_box_item`, and `_as_wrap_lines` helpers. Parses both `###` and `####` headings to catch tasks at both levels of the file structure.
+
+**Chaos Orb Accounting:** Included in Session 33 total (+212 orbs)
+
+**Running Total: 5,525 orbs**
+
+*"Good tools compound. Every session you spend building the scaffold pays back every session after."*
+
+**— ML** 📋
+
+---
