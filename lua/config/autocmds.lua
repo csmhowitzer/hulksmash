@@ -106,3 +106,25 @@ vim.api.nvim_create_autocmd("LspAttach", {
     end
   end,
 })
+
+-- :GetColor <highlight-group>
+-- Resolves a highlight group through all its links and prints the final hex color.
+-- Useful when paired with :Inspect to see what color a token actually renders as.
+vim.api.nvim_create_user_command("GetColor", function(opts)
+  local name = opts.args
+  local id = vim.fn.hlID(name)
+  if id == 0 then
+    print("Unknown highlight group: " .. name)
+    return
+  end
+  local resolved_id = vim.fn.synIDtrans(id)
+  local resolved_name = vim.fn.synIDattr(resolved_id, "name")
+  local fg = vim.fn.synIDattr(resolved_id, "fg#")
+  local bg = vim.fn.synIDattr(resolved_id, "bg#")
+  print(string.format(
+    "%s → fg: %s  bg: %s",
+    resolved_name,
+    fg ~= "" and fg or "none",
+    bg ~= "" and bg or "none"
+  ))
+end, { nargs = 1, desc = "Resolve a highlight group to its final rendered color" })

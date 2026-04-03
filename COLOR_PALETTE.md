@@ -208,6 +208,28 @@ Reserved for UI chrome and highest-priority signals. Avoid for common syntax.
 
 ---
 
+## Live Inspection Log
+
+> Built from real `:Inspect` output. These are the confirmed default colors and whether we like them.
+> Winner = highest priority group that actually applies the color.
+
+| Construct | Example | Winner Group | Resolved Color | Verdict |
+|-----------|---------|--------------|----------------|---------|
+| `using` keyword | `using System;` | `@lsp.type.keyword.cs` → `Keyword` | `#cba6f7` Mauve | ✅ Like |
+| Namespace | `System.Text.Json` | `@lsp.type.namespace.cs` → `@module` | `#b4befe` Lavender | ✅ Like |
+| String | `"hello"`, `$"..."`, `@"..."` | `@lsp.type.string.cs` → `String` | `#a6e3a1` Green | ✅ Like |
+| Escape chars | `\r\n` | `@string.escape.c_sharp` → `@string.escape` | `#f5c2e7` Pink | ✅ Like |
+| Class | `MyClass` | `@lsp.type.class.cs` → `Type` | `#f9e2af` Yellow | ✅ Like |
+| Parameter | `Method(string param)` | `@lsp.type.parameter.cs` → `@parameter` | `#eba0ac` Maroon + italic | ✅ Confirmed — LSP carries color+italic at usage sites; signature uses `@variable.parameter.c_sharp` |
+| Method | `MyMethod()` | `@lsp.type.method.cs` → `Function` | `#89b4fa` Blue | ✅ Like |
+| Attribute | `[Connection(...)]` | `@lsp.type.class.cs = {}` → falls through to `@attribute.c_sharp` → `Constant` | `#fab387` Peach | ✅ Like — fixed by disabling LSP class token, Treesitter distinguishes correctly |
+| Class | `GetImageQueue` | `@lsp.type.class.cs = {}` → falls through to `@type.c_sharp` → `Type` | `#f9e2af` Yellow | ✅ Like — Treesitter fallback holds |
+| Class as type | `UtilityService` (param) | `@lsp.type.class.cs = {}` → falls through to `@type.c_sharp` → `Type` | `#f9e2af` Yellow | ✅ Like — same as class, correct |
+| Interface | `IQueuedWorkflow` | `@lsp.type.interface.cs` → `@lsp.type.interface` | `#f2cdcd` Flamingo | ✅ Like |
+| Constant | `MY_CONST` | `@lsp.type.constant.cs` (priority 125) | `#f5c2e7` Pink bold | ✅ Like — bold makes it pop, distinct from attributes/interfaces |
+
+---
+
 ## Notes & Decisions
 
 - **Constants = Electric Yellow** (`#F7DC6F`) — same as plugin borders, unmistakable
@@ -219,4 +241,37 @@ Reserved for UI chrome and highest-priority signals. Avoid for common syntax.
 - **Interface/Enum/Attribute family** — cyan/teal, complementary (not contrasting) to Class/Struct yellow
 - **Keywords fade** — blue pushes them back so named things dominate
 - **Strings are green** — distinct from types; separates data from structure visually
+- **Properties** — `#c9a0c9` muted orchid; sits between warm and cool, bridges structure and data; hook: `@lsp.type.property.cs` priority 125; more saturation felt too much, value is right
+- **Warm/Cool semantic rule** — Cool = structure/flow (keywords, namespaces, methods, static refs); Warm = data/values (constants, parameters, operators, string internals). Use this to guide future color decisions. Interfaces (Flamingo) are a known intentional exception — light enough it doesn't break the feel.
+- **Operators** — `#c4726a` brick red (orange-shifted warm); muted/pastel, stands out against cool surroundings without reading as "error"; hook: `@lsp.type.operator.cs` priority 125
+- **Extension Methods** — `#74c7ec` Sapphire; between teal and blue, distinct from regular methods (`#89b4fa`); shared with static classes; hook: `@lsp.type.extensionMethod.cs` priority 125
+- **Static Classes** — `#d4a574` warm amber; warm/data side, distinct from regular class Yellow `#f9e2af`; hook: `@lsp.typemod.class.static.cs` priority 125
+- **Static Fields** — `#e8b860` yellow-orange bold; warm/data side, distinct from static class amber; hook: `@lsp.typemod.field.static.cs` priority 127
+- **Predefined types / primitives (`int`, `string`, `bool`)** — `#6b86ef` cool blue-mauve; decoupled from keywords by clearing `@lsp.type.keyword.cs = {}`; hook: `@type.builtin.c_sharp` priority 100 (Treesitter wins once LSP cleared); Treesitter node: `predefined_type`
+
+## ⏳ Custom Treesitter Query TODOs
+> File to create: `~/.config/nvim/queries/c_sharp/highlights.scm`
+> Must start with `;; extends` to avoid replacing the built-in grammar
+
+### 1. `var` keyword → primitive type color
+- **Goal:** `var` should use the same cool blue-mauve `#6b86ef` as `int`/`string`/`bool`
+- **Problem:** `var` falls to `@keyword.c_sharp` → Mauve (same as `if`/`else`/`for`)
+- **AST node confirmed:** `(implicit_type)` — seen throughout tree_example.md (lines 248, 259, 299, 345, 374, 407, 444, 483, etc.)
+- **Query to write:**
+  ```scheme
+  ;; extends
+  (implicit_type) @type.builtin
+  ```
+- **Why it works:** Maps `var` to `@type.builtin` which we've already styled to `#6b86ef`; Treesitter at priority 100 will win since `@lsp.type.keyword.cs` is cleared
+
+### 2. Generic type arguments `List<MyType>` → italic type parameter
+- **Goal:** Type parameters (the `T` in `List<T>`, `MyType` in `List<MyType>`) should be visually distinct — italics suggested
+- **Problem:** No LSP or default Treesitter capture targets the argument position specifically
+- **AST node confirmed:** `(identifier)` directly inside `(type_argument_list)` — seen at lines 233-234, 307-308, 354-355, etc. in tree_example.md
+- **Query to write:**
+  ```scheme
+  (type_argument_list (identifier) @type.parameter)
+  ```
+  Then add `["@type.parameter"] = { italic = true }` to catppuccin.lua custom_highlights
+- **Note:** Decide on a color — could inherit from class Yellow `#f9e2af` with italic, or use a distinct cooler tone since type params are structural placeholders
 
