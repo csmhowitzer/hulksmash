@@ -1,7 +1,6 @@
 return {
   {
     "augmentcode/augment.vim",
-    dependencies = { "hrsh7th/nvim-cmp" },
     config = function()
       vim.g.augment_disable_completions = true
 
@@ -17,11 +16,11 @@ return {
 
       vim.g.augment_workspace_folders = require("m_augment.utils").ingest_workspaces()
 
-      -- custom function to check nvim-cmp menu visiblity
+      -- custom function to check blink.cmp menu visibility
       local Augment_Accept = function()
-        -- check if nvim-cmp menu is visible
-        if require("cmp").visible() then
-          require("cmp").confirm({ select = true })
+        -- check if blink.cmp menu is visible
+        if require("blink.cmp").is_visible() then
+          require("blink.cmp").accept()
         else
           -- call augment's accept function
           vim.cmd([[call augment#Accept('N/A')]])

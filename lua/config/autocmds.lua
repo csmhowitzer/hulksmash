@@ -121,10 +121,5 @@ vim.api.nvim_create_user_command("GetColor", function(opts)
   local resolved_name = vim.fn.synIDattr(resolved_id, "name")
   local fg = vim.fn.synIDattr(resolved_id, "fg#")
   local bg = vim.fn.synIDattr(resolved_id, "bg#")
-  print(string.format(
-    "%s → fg: %s  bg: %s",
-    resolved_name,
-    fg ~= "" and fg or "none",
-    bg ~= "" and bg or "none"
-  ))
+  print(string.format("%s → fg: %s  bg: %s", resolved_name, fg ~= "" and fg or "none", bg ~= "" and bg or "none"))
 end, { nargs = 1, desc = "Resolve a highlight group to its final rendered color" })

@@ -13,11 +13,10 @@
 ;; Separate capture name so italic doesn't bleed to ALL predefined types globally
 (type_argument_list (predefined_type) @type.builtin.generic)
 
-;; Class names in static call position e.g. Option<string>.Some() → Yellow
-;; AST: (member_access_expression expression: (generic_name (identifier)))
-;; Fixes @function.method.c_sharp bleeding onto the class name
-(member_access_expression
-  expression: (generic_name (identifier) @type))
+;; Attributes → Peach at priority 200, beats LSP @lsp.type.class.cs at 125
+;; Fixes: [HttpGet] etc being colored as classes when @lsp.type.class.cs is active
+(attribute name: (identifier) @attribute.c_sharp
+  (#set! priority 200))
 
 ;; Parameter modifiers (out, ref, in, params) → Mauve like other keywords
 ;; AST node: (modifier) inside (parameter) confirmed via :InspectTree

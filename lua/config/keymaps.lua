@@ -2,6 +2,8 @@
 -- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
 -- Add any additional keymaps here
 
+vim.cmd("packadd cfilter") -- enable :cfilter for quickfix list filtering
+
 -- CONFIG: Deleted default keymaps go first
 vim.keymap.del("n", "<leader>l", { desc = "Lazy" })
 vim.keymap.del("n", "<leader>`", { desc = "Switch to other buffer" })
@@ -33,6 +35,10 @@ vim.keymap.set("n", "<leader>q", function()
     vim.notify(err, vim.log.levels.ERROR)
   end
 end, { desc = "Quickfix List" })
+vim.keymap.set("n", "<leader>qf", ":Cfilter /", { desc = "Quickfix [F]ilter" })
+vim.keymap.set("n", "<leader>qF", ":Cfilter! /", { desc = "Quickfix [F]ilter Exclude" })
+vim.keymap.set("n", "<leader>qp", "<cmd>colder<cr>", { desc = "Quickfix [P]revious list" })
+vim.keymap.set("n", "<leader>qn", "<cmd>cnewer<cr>", { desc = "Quickfix [N]ext list" })
 -- location list (traditional quickfix locations)
 vim.keymap.set("n", "<leader>l", function()
   local success, err = pcall(vim.fn.getloclist(0, { winid = 0 }).winid ~= 0 and vim.cmd.lclose or vim.cmd.lopen)
@@ -88,3 +94,4 @@ vim.keymap.set("n", "<S-k>", "<C-w>k", { desc = "Go to Upper Window" })
 vim.keymap.set("n", "<S-l>", "<C-w>l", { desc = "Go to Right Window" })
 
 vim.keymap.set("n", "<leader>pbf", "<CMD>PlenaryBustedFile %<CR>", { desc = "[P]lenary [B]usted [F]ile" })
+

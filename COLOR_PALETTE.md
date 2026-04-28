@@ -11,6 +11,17 @@ Cool colors fade into the background. Warm colors demand attention.
 
 ---
 
+## Style Rules
+
+| Style | Rule | Examples |
+|-------|------|---------|
+| **Italic** | Context-qualifiers only — things that modify or annotate a primary identifier, never primary identifiers themselves | Type args inside `<>`, `async`/`await`, parameters |
+| **Bold** | Warm data only — values that are fixed/static and should demand attention | Constants, static fields, static properties |
+
+Primary type identifiers (class, struct, record, interface) never take italic or bold — color alone carries the distinction.
+
+---
+
 ## Tier System
 
 | Tier | Elements | Color Direction | Notes |
