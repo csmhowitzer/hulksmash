@@ -20,9 +20,6 @@ vim.opt.relativenumber = true
 -- no swap files
 vim.opt.swapfile = true
 
--- set the line length via a colored column
-vim.opt.colorcolumn = "160"
-
 vim.opt.tabstop = 4
 vim.opt.softtabstop = 4
 vim.opt.shiftwidth = 4
