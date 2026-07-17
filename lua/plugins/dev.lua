@@ -23,10 +23,8 @@ return {
     build = ":helptags doc",
     config = function()
       require("format-width").setup({
-        -- Uses built-in defaults:
-        -- markdown: 80 chars, conceallevel=2
-        -- cs: 120 chars, tabstop=4
-        -- lua: 120 chars, tabstop=2
+        cs = { width = 180 },
+        lua = { width = 180 },
       })
     end,
   },

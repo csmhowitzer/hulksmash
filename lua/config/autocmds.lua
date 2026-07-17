@@ -7,26 +7,6 @@
 -- Or remove existing autocmds by their group name (which is prefixed with `lazyvim_` for the defaults)
 -- e.g. vim.api.nvim_del_augroup_by_name("lazyvim_wrap_spell")
 
-vim.api.nvim_create_autocmd("FileType", {
-  group = vim.api.nvim_create_augroup("code_colorcolumn", { clear = true }),
-  pattern = {
-    "cs",
-    "go",
-    "javascript",
-    "javascriptreact",
-    "lua",
-    "python",
-    "rust",
-    "sh",
-    "typescript",
-    "typescriptreact",
-    "zsh",
-  },
-  callback = function()
-    vim.opt_local.colorcolumn = "180"
-  end,
-})
-
 vim.api.nvim_create_autocmd("LspAttach", {
   group = vim.api.nvim_create_augroup("kickstart-lsp-attach", { clear = true }),
   callback = function(event)
